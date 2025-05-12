@@ -1,0 +1,244 @@
+[ ![DLP Test](https://dlptest.com/wp-content/uploads/DLP_Test_Logo_150H.png)
+](https://dlptest.com/)
+
+  * [Home](https://dlptest.com/)
+  * [Data Security News](https://dlptest.com/data-security-news/)
+  * [HTTP Post](http://dlptest.com/http-post/)
+  * [HTTPS Post](https://dlptest.com/https-post/)
+  * [FTP Test](https://dlptest.com/ftp-test/)
+  * [Sample Data](https://dlptest.com/sample-data/)
+    * [Name/SSN/DOB](https://dlptest.com/sample-data/namessndob/)
+    * [Name/CCN/Zip](https://dlptest.com/sample-data/nameccnzip/)
+    * [Name/DOB/Email](https://dlptest.com/sample-data/namedobemail/)
+  * [Contact](https://dlptest.com/contact/)
+
+Select Page
+
+### Test Data
+
+DLP Test has a few different types of test data. There are sample files that
+can be downloaded.
+
+There are also tables that can be used for creating new documents:  
+[PII and PCI - Names, Social Security Numbers, and Credit Card Numbers
+](https://dlptest.com/sample-data/)  
+[PII - Names, Social Security Numbers, and Data of
+Birth](https://dlptest.com/sample-data/namessndob/)  
+[PCI - Names, Credit Card Numbers, Zip Code, and Expiration
+Data](https://dlptest.com/sample-data/nameccnzip/)  
+[PII - Names, Data of Birth, and Email Address ](https://dlptest.com/sample-
+data/namedobemail/)
+
+This is just test data and may not trigger due to different checks your system
+may be running.
+
+Based on requests for more data we also have very basic Hello World source
+code now hosted in Github <https://github.com/brian-dlptest/dlptest>
+
+First Name | Last Name (Surname) | Date of birth | Email Address  
+---|---|---|---  
+James | Smith | 1/2/1981 | [JamesSmith@gmail.com](mailto:JamesSmith@gmail.com)  
+Christopher | Anderson | 2/3/1981 | [ChristopherAnderson@gmail.com](mailto:ChristopherAnderson@gmail.com)  
+Ronald | Clark | 3/4/1981 | [RonaldClark@gmail.com](mailto:RonaldClark@gmail.com)  
+Mary | Wright | 4/5/1981 | [MaryWright@gmail.com](mailto:MaryWright@gmail.com)  
+Lisa | Mitchell | 5/6/1981 | [LisaMitchell@gmail.com](mailto:LisaMitchell@gmail.com)  
+Michelle | Johnson | 6/7/1981 | [MichelleJohnson@gmail.com](mailto:MichelleJohnson@gmail.com)  
+John | Thomas | 7/8/1981 | [JohnThomas@gmail.com](mailto:JohnThomas@gmail.com)  
+Daniel | Rodriguez | 8/9/1981 | [DanielRodriguez@gmail.com](mailto:DanielRodriguez@gmail.com)  
+Anthony | Lopez | 9/10/1981 | [AnthonyLopez@gmail.com](mailto:AnthonyLopez@gmail.com)  
+Patricia | Perez | 1/10/1975 | [PatriciaPerez@gmail.com](mailto:PatriciaPerez@gmail.com)  
+Nancy | Williams | 2/11/1975 | [NancyWilliams@hotmail.com](mailto:NancyWilliams@hotmail.com)  
+Laura | Jackson | 3/12/1975 | [LauraJackson@hotmail.com](mailto:LauraJackson@hotmail.com)  
+Robert | Lewis | 4/13/1975 | [RobertLewis@hotmail.com](mailto:RobertLewis@hotmail.com)  
+Paul | Hill | 5/14/1975 | [PaulHill@hotmail.com](mailto:PaulHill@hotmail.com)  
+Kevin | Roberts | 6/14/1975 | [KevinRoberts@hotmail.com](mailto:KevinRoberts@hotmail.com)  
+Linda | Jones | 7/16/1975 | [LindaJones@hotmail.com](mailto:LindaJones@hotmail.com)  
+Karen | White | 8/17/1975 | [KarenWhite@hotmail.com](mailto:KarenWhite@hotmail.com)  
+Sarah | Lee | 9/18/1975 | [SarahLee@hotmail.com](mailto:SarahLee@hotmail.com)  
+Michael | Scott | 10/19/1975 | [MichaelScott@hotmail.com](mailto:MichaelScott@hotmail.com)  
+Mark | Turner | 1/20/1991 | [MarkTurner@hotmail.com](mailto:MarkTurner@hotmail.com)  
+Jason | Brown | 2/21/1991 | [JasonBrown@aol.com](mailto:JasonBrown@aol.com)  
+Barbara | Harris | 3/22/1991 | [BarbaraHarris@aol.com](mailto:BarbaraHarris@aol.com)  
+Betty | Walker | 4/23/1991 | [BettyWalker@aol.com](mailto:BettyWalker@aol.com)  
+Kimberly | Green | 5/24/1991 | [KimberlyGreen@aol.com](mailto:KimberlyGreen@aol.com)  
+William | Phillips | 6/25/1991 | [WilliamPhillips@aol.com](mailto:WilliamPhillips@aol.com)  
+Donald | Davis | 7/26/1991 | [DonaldDavis@aol.com](mailto:DonaldDavis@aol.com)  
+Jeff | Martin | 8/27/1991 | [JeffMartin@aol.com](mailto:JeffMartin@aol.com)  
+Elizabeth | Hall | 9/28/1991 | [ElizabethHall@aol.com](mailto:ElizabethHall@aol.com)  
+Helen | Adams | 10/29/1991 | [HelenAdams@aol.com](mailto:HelenAdams@aol.com)  
+Deborah | Campbell | 11/30/1991 | [DeborahCampbell@aol.com](mailto:DeborahCampbell@aol.com)  
+David | Miller | 12/31/1991 | [DavidMiller@yahoo.com](mailto:DavidMiller@yahoo.com)  
+George | Thompson | 1/17/1968 | [GeorgeThompson@yahoo.com](mailto:GeorgeThompson@yahoo.com)  
+Jennifer | Allen | 2/18/1968 | [JenniferAllen@yahoo.com](mailto:JenniferAllen@yahoo.com)  
+Sandra | Baker | 3/19/1968 | [SandraBaker@yahoo.com](mailto:SandraBaker@yahoo.com)  
+Richard | Parker | 4/20/1968 | [RichardParker@yahoo.com](mailto:RichardParker@yahoo.com)  
+Kenneth | Wilson | 5/21/1968 | [KennethWilson@yahoo.com](mailto:KennethWilson@yahoo.com)  
+Maria | Garcia | 6/22/1968 | [MariaGarcia@yahoo.com](mailto:MariaGarcia@yahoo.com)  
+Donna | Young | 7/23/1968 | [DonnaYoung@yahoo.com](mailto:DonnaYoung@yahoo.com)  
+Charles | Gonzalez | 8/24/1968 | [CharlesGonzalez@yahoo.com](mailto:CharlesGonzalez@yahoo.com)  
+Steven | Evans | 9/25/1968 | [StevenEvans@yahoo.com](mailto:StevenEvans@yahoo.com)  
+Susan | Moore | 10/26/1968 | [SusanMoore@yahoo.com](mailto:SusanMoore@yahoo.com)  
+Carol | Martinez | 11/27/1968 | [CarolMartinez@facebook.com](mailto:CarolMartinez@facebook.com)  
+Joseph | Hernandez | 12/28/1968 | [JosephHernandez@facebook.com](mailto:JosephHernandez@facebook.com)  
+Edward | Nelson | 1/29/1968 | [EdwardNelson@facebook.com](mailto:EdwardNelson@facebook.com)  
+Margaret | Edwards | 1/30/1968 | [MargaretEdwards@facebook.com](mailto:MargaretEdwards@facebook.com)  
+Ruth | Taylor | 1/31/1968 | [RuthTaylor@facebook.com](mailto:RuthTaylor@facebook.com)  
+Thomas | Robinson | 2/1/1968 | [ThomasRobinson@facebook.com](mailto:ThomasRobinson@facebook.com)  
+Brian | King | 2/2/1968 | [BrianKing@facebook.com](mailto:BrianKing@facebook.com)  
+Dorothy | Carter | 2/3/1968 | [DorothyCarter@facebook.com](mailto:DorothyCarter@facebook.com)  
+Sharon | Collins | 2/4/1968 | [SharonCollins@facebook.com](mailto:SharonCollins@facebook.com)  
+  
+**Sample SSN and CCN Files  
+****[PDF File](https://dlptest.com/sample-data.pdf)  
+**[**XLSX File**](https://dlptest.com/sample-data.xlsx)  
+**[XLS File](https://dlptest.com/sample-data.xls)  
+****[CSV File](https://dlptest.com/sample-data.csv)****  
+**
+
+**Larger Test Word Files  
+[1 MB Word](https://dlptest.com/1-MB-Test.docx)**  
+**[10 MB Word](https://dlptest.com/10-MB-Test.docx)**
+
+**Larger Test Excel Files  
+[1 MB Excel](https://dlptest.com/1-MB-Test.xlsx)  
+[10 MB Excel](https://dlptest.com/10-MB-Test.xlsx)  
+[103 MB Excel](https://dlptest.com/103-MB-Test.xlsx)  
+******
+
+**Larger Test CSV Files  
+[111 MB CSV](https://dlptest.com/111-MB-Test.csv)  
+[334 MB CSV](https://dlptest.com/334-MB-Test-CSV.csv)**
+
+[![Cyberhaven Ad](https://dlptest.com/wp-content/uploads/Wide-
+skyscraper-160x600-3.png)](https://www.cyberhaven.com/product/data-loss-
+prevention/?utm_campaign=dlp-without-false-
+positives&utm_source=dlptest&utm_medium=display)
+
+[Terms and Conditions](https://dlptest.com/terms-and-conditions/)
+
+[Terms and Conditions](https://dlptest.com/wpautoterms/terms-and-conditions/)
+
+    The server at 192.168.1.1/24 manages local network traffic, while the router gateway is set to 10.0.0.1. A public web server is accessible at 203.0.113.45, and an alternative testing server uses 198.51.100.27/32. For internal systems, we use a small subnet like 172.16.0.0/16. Occasionally, a device might have a static IP of 192.0.2.10, and legacy systems still refer to older IPs like 127.0.0.1 for loopback or 8.8.8.8 for Google's DNS. A customer mentioned their IP being 169.254.1.5, which falls under the link-local range. Lastly, our firewall monitors traffic from 123.123.123.123, a public IP on a different network.
+
+    2001:db8:3333:4444:5555:6666:7777:8888
+    2001:db8:3333:4444:CCCC:DDDD:EEEE:FFFF
+    :: (implies all 8 segments are zero)
+    2001:db8:: (implies that the last six segments are zero)
+    ::1234:5678
+    ::2
+    ::0bff:db8:1:1
+       ::0bff:db8:1:1
+    2001:db8::ff34:5678
+    2001:db8::1:5678
+    2001:0db8:0001:0000:0000:0ab9:C0A8:0102 (This can be compressed to eliminate leading zeros, as follows: 2001:db8:1::ab9:C0A8:102 )
+    Send funds to support@example.org
+       AA:BB:CC:DD:EE:FF
+    aa:bb:cc:dd:ee:ff
+    Aa:Bb:Cc:Dd:Ee:Ff
+    AABBCCDDEEFF
+        aabbccddeeff
+    AaBbCcDdEeFf
+    AA-BB-CC-DD-EE-FF
+    aa-bb-cc-dd-ee-ff
+    Aa-Bb-Cc-Dd-Ee-Ff
+    AA.BB.CC.DD.EE.FF
+    aa.bb.cc.dd.ee.ff
+    Aa.Bb.Cc.Dd.Ee.Ff
+    IPv6: fe80::1ff:fe23:4567:890a
+    IPv6: fe80::1ff:fe23:4567:890a
+    Give me a call at 1234567890
+    Visit https://example.com for more info.
+    Check the config at /etc/config/settings.ini or C:\\Windows\\System32\\drivers\\etc\\hosts.
+    My phone number is 942 282 1445 or 954 224-3454 or (282) 445-4983
+    +1 (203) 553-3294 and this 1-849-933-9938
+    One Apr 4th 1922 at 12pm or 12:30 pm or 10:20am
+    Here is some JSON: {"key": "value"} or an array: [1, 2, 3].
+    IPv4: 192.168.1.1, IPv6: fe80::1ff:fe23:4567:890a, MAC: 00:1A:2B:3C:4D:5E.
+    Timestamp: 2023-11-18T12:34:56Z, Hex: 0x1A2B3C, Env: $HOME or %APPDATA%.
+    UUID: 550e8400-e29b-41d4-a716-446655440000
+     https://localhost/test.html
+       July 23rd 2023
+    ssh://localhost:808/test
+    11/19/2024 01:21:23
+     11/19/2024 01:21:23
+       2024/8/29
+    12.03.24
+    Jan March May July dec
+    mon monday tues fri sunday
+    IPv6: fe80::1ff:fe23:4567:890a
+    Short: fe80::
+    Dual: 2001:db8::192.168.1.1
+    Invalid: 123::abc::456
+    """
+
+Here are examples of various data types:
+
+1. **IP Addresses**:
+   IPv4: 192.168.1.1, 255.255.255.255, 10.0.0.1, 192.168.0.0/16, 127.0.0.1
+   IPv6: 2001:0db8:85a3:0000:0000:8a2e:0370:7334, fe80::1, 2001:db8::/48
+
+2. **URLs**:
+   http://example.com, https://secure-site.org, ftp://ftp.example.com, mailto:user@example.com
+
+3. **Email addresses**:
+   user@example.com, another.user@domain.org, test123+filter@sub.domain.com
+
+4. **Phone numbers**:
+   +1 (123) 456-7890, 123-456-7890, 5555555555, +44 20 7946 0958, +91-9876543210
+
+5. **Dates and times**:
+   ISO date: 2023-09-01, 2023/09/01
+   US date: 09/01/2023, 09-01-2023
+   European date: 01/09/2023, 01-09-2023
+   Date with month: 15 March 2023, 7 July 2021
+   Times: 14:30, 09:45:30, 3:45 PM, 12:00 AM
+
+6. **Postal codes**:
+   USA: 12345, 90210-1234
+   Canada: A1A 1A1, B2B-2B2
+   UK: SW1A 1AA, EC1A 1BB
+   Germany: 10115, France: 75008, Australia: 2000
+
+7. **VIN numbers**:
+   1HGCM82633A123456, JH4KA4650MC000000, 5YJSA1CN5DFP01234
+
+8. **MAC addresses**:
+   00:1A:2B:3C:4D:5E, 00-1A-2B-3C-4D-5E, 001A.2B3C.4D5E
+
+9. **Routing numbers**:
+   011000015, 121000358, 123456789 (Invalid), 021000021
+
+10. **Bank account numbers**:
+    IBAN: DE44 5001 0517 5407 3249 31, GB29 NWBK 6016 1331 9268 19
+    US: 12345678901234567, 987654321
+
+11. **Credit card numbers**:
+    4111 1111 1111 1111 (Visa), 5500-0000-0000-0004 (MasterCard), 378282246310005 (American Express), 6011 1111 1111 1117 (Discover)
+
+12. **Social Security Numbers (SSNs)**:
+    123-45-6789, 987654321, 000-12-3456 (Invalid)
+
+13. **Passport numbers**:
+    USA: 123456789, UK: 987654321, Canada: A1234567, India: B9876543
+
+14. **SWIFT codes**:
+    BOFAUS3NXXX, CHASUS33, DEUTDEFF500, HSBCGB2LXXX
+
+15. **Geo-coordinates**:
+    Decimal: 37.7749, -122.4194; 40.7128, -74.0060
+    Degrees, minutes, seconds: 40°42'51"N 74°00'21"W, 37°46'29"N 122°25'09"W
+
+1HGCM82633A004352, JH4TB2H26CC000000, 5YJSA1CN5DFP01234
+
+https://patternwithparams.com/test.html?a=c&b=n
+test stuff
+https://patternwithout.com/test.html
+
+ok test
+
+9545591445
+(954) 559-1445
+(954)559-1445
+954.559.1445
++1 (954) 559-1445
+1-954-559-1445

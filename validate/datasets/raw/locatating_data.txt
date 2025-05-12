@@ -1,0 +1,5 @@
+https://binlist.net
+https://github.com/srcagency/country-currencies # currency map
+https://github.com/srcagency/country-coords # country coordinates
+
+https://data.gov

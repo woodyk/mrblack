@@ -1,0 +1,14 @@
+beautifulsoup4
+docx
+mss
+pymupdf
+openpyxl
+pandas
+Pillow
+pydub
+pytesseract
+python_docx
+python_magic
+Requests
+rich
+SpeechRecognition
