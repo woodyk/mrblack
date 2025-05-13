@@ -5,7 +5,7 @@
 # Author: Wadih Khairallah
 # Description: 
 # Created: 2025-04-28 14:40:57
-# Modified: 2025-05-12 17:33:04
+# Modified: 2025-05-13 15:43:56
 
 from setuptools import setup, find_packages
 from pathlib import Path
@@ -21,14 +21,14 @@ def read_requirements():
 
 setup(
     name="mrblack",
-    version="0.1.0",
+    version="0.1.3",
     author="Wadih Khairallah",
     author_email="woodyk@gmail.com",
     description="Data extraction and text-extraction tools",
     long_description=(here / "README.md").read_text(),
     long_description_content_type="text/markdown",
     url="https://github.com/woodyk/mrblack",
-    packages=find_packages(include=["mrblack.*"]),
+    packages=find_packages(include=["mrblack", "mrblack.*"]),
     install_requires=read_requirements(),
     python_requires=">=3.8",
     entry_points={

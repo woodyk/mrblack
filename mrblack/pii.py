@@ -1,12 +1,10 @@
-# pii.py
-
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # File: pii.py
 # Author: Wadih Khairallah
 # Created: 2024-12-01
-# Modified: 2025-05-12 17:35:01
+# Modified: 2025-05-13 15:41:21
 
 import os
 import re
@@ -31,7 +29,7 @@ from .patterns import PATTERNS
 from mrblack.textextract import (
     clean_path,
     extract_text,
-    get_screenshot,
+    text_from_screenshot,
     text_from_url,
 )
 
@@ -69,7 +67,7 @@ def _clean_value(
     return value
 
 
-def extract(
+def extract_pii_text(
     text: str,
     labels: Optional[Union[List[str], str]] = None
 ) -> Dict[str, List[str]]:
@@ -113,7 +111,7 @@ def extract(
     return {lbl: sorted(vals) for lbl, vals in results.items()}
 
 
-def file(
+def extract_pii_file(
     file_path: str,
     labels: Optional[Union[List[str], str]] = None
 ) -> Optional[Dict[str, List[str]]]:
@@ -130,11 +128,11 @@ def file(
     text = extract_text(file_path)
     if not text:
         return None
-    data = extract(text, labels)
+    data = extract_pii_text(text, labels)
     return data or None
 
 
-def url(
+def extract_pii_url(
     path: str,
     labels: Optional[Union[List[str], str]] = None
 ) -> Optional[Dict[str, List[str]]]:
@@ -151,11 +149,36 @@ def url(
     text = text_from_url(path)
     if not text:
         return None
-    data = extract(text, labels)
+    data = extract_pii_text(text, labels)
     return data or None
 
 
-def screenshot(
+def extract_pii_image(
+    image_path: str,
+    labels: Optional[Union[List[str], str]] = None
+) -> Optional[Dict[str, List[str]]]:
+    """
+    Extract PII from an image using OCR.
+
+    Args:
+        image_path (str): Path to the image file.
+        labels (Optional[Union[List[str], str]]): Labels to filter.
+
+    Returns:
+        Optional[Dict[str, List[str]]]: Extraction results, or None.
+    """
+    path = clean_path(image_path)
+    if not path or not os.path.isfile(path):
+        print(f"[red]Invalid image path:[/] {image_path}")
+        return None
+    text = extract_text(path)
+    if not text:
+        return None
+    data = extract_pii_text(text, labels)
+    return data or None
+
+
+def extract_pii_screenshot(
     labels: Optional[Union[List[str], str]] = None
 ) -> Optional[Dict[str, List[str]]]:
     """
@@ -167,17 +190,10 @@ def screenshot(
     Returns:
         Optional[Dict[str, List[str]]]: Extraction results, or None.
     """
-    tmp = get_screenshot()
-    try:
-        text = extract_text(tmp)
-    finally:
-        try:
-            os.remove(tmp)
-        except OSError:
-            pass
+    text = text_from_screenshot()
     if not text:
         return None
-    data = extract(text, labels)
+    data = extract_pii_text(text, labels)
     return data or None
 
 
@@ -206,7 +222,7 @@ def directory(
     for root, _, files in os.walk(directory_path):
         for fname in files:
             path = os.path.join(root, fname)
-            res = file(path, labels)
+            res = extract_pii_file(path, labels)
             if not res:
                 continue
             if serial:
@@ -362,9 +378,9 @@ def main() -> None:
     func_result = None
 
     if re.match(r'^(?:http|ftp)s?://', raw):
-        func_result = url(raw, label_list)
+        func_result = extract_pii_url(raw, label_list)
     elif raw.lower() in {"screenshot", "screen", "capture"}:
-        func_result = screenshot(label_list)
+        func_result = extract_pii_screenshot(label_list)
     else:
         path = clean_path(raw)
         if not path:
@@ -373,7 +389,7 @@ def main() -> None:
         if os.path.isdir(path):
             func_result = directory(path, label_list, serial=args.serial)
         elif os.path.isfile(path):
-            func_result = file(path, label_list)
+            func_result = extract_pii_file(path, label_list)
         else:
             print(f"[red]Error:[/] Unsupported input '{raw}'.")
             return

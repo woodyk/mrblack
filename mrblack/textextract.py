@@ -4,7 +4,7 @@
 # File: textextract.py
 # Author: Wadih Khairallah
 # Created: 2024-12-01 12:12:08
-# Modified: 2025-05-12 16:31:19
+# Modified: 2025-05-13 15:37:30
 
 import os
 import re
@@ -65,7 +65,33 @@ def clean_path(
     return None
 
 
-def get_screenshot() -> str:
+def normalize(
+    text: str
+) -> str:
+    """
+    Replace multiple consecutive newlines, carriage returns, and spaces
+    with a single space. Ensures compact, single-line output.
+
+    Args:
+        text (str): Raw input text.
+
+    Returns:
+        str: Normalized single-line text.
+    """
+    text = re.sub(r' +', ' ', text)
+    text = re.sub(r'\n+', '\n', text)
+    text = re.sub(r'(?m)(^ \n)+', '\n', text)
+    text = re.sub(r'\t+', '\t', text)
+    text = re.sub(r'\r+', '\n', text)
+    return text 
+
+
+def is_url(s: str) -> bool:
+    parsed = urlparse(s)
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+
+def text_from_screenshot() -> str:
     """
     Capture a full-screen screenshot and save to a temporary file.
 
@@ -92,7 +118,8 @@ def get_screenshot() -> str:
     )
     img_gray = img.convert("L")
     img_gray.save(tmp_path)
-    return tmp_path
+    content = text_from_image(tmp_path)
+    return normalize(content) 
 
 
 def extract_exif(
@@ -142,7 +169,8 @@ def text_from_url(
              "header", "footer", "meta", "link"]
         ):
             tag.decompose()
-        return soup.get_text(separator=" ").strip()
+        content = soup.get_text(separator=" ").strip()
+        return normalize(content) 
     except requests.RequestException as e:
         print(f"Error fetching URL: {url} - {e}")
         return None
@@ -152,21 +180,22 @@ def extract_text(
     file_path: str
 ) -> Optional[str]:
     """
-    Extract text content from a file based on MIME type.
+    Extract text content from a local file or URL.
 
-    Supports text, JSON, XML, CSV, Excel, PDF, DOCX, images, audio.
+    Supports web pages, text, JSON, XML, CSV, Excel, PDF, DOCX, images, audio.
 
     Args:
-        file_path (str): Path to the input file.
+        file_path (str): Path to the input file or URL.
 
     Returns:
         Optional[str]: Extracted text, or None if unsupported or error.
     """
+    if is_url(file_path):
+        return text_from_url(file_path)
+
     TEXT_MIME_TYPES = {
-        # programming, config, data types...
         "application/json", "application/xml", "application/x-yaml",
         "application/x-toml", "application/x-csv", "application/x-markdown",
-        # add others as needed
     }
 
     path = clean_path(file_path)
@@ -190,7 +219,7 @@ def extract_text(
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
             content = text_from_docx(path)
         elif mime_type == "application/msword":
-            content = text_from_doc(path)  # legacy .doc
+            content = text_from_doc(path)
         elif mime_type.startswith("image/"):
             content = text_from_image(path)
         elif mime_type.startswith("audio/"):
@@ -322,7 +351,7 @@ def text_from_pdf(
                 ocr = text_from_image(img_path) or ""
                 plain_text += f"\n[Image {img_index} OCR]\n{ocr}\n"
         doc.close()
-        return plain_text
+        return normalize(plain_text)
     except Exception as e:
         print(f"Error processing PDF: {e}")
         return None
@@ -368,7 +397,8 @@ def text_from_doc(
         data = f.read()
     strings = extract_printable_strings(data)
     strings = clean_strings(strings)
-    return "\n".join(strings)
+    content = "\n".join(strings)
+    return normalize(content)
 
 
 def text_from_docx(
@@ -405,7 +435,7 @@ def text_from_docx(
                     img_f.write(blob)
                 ocr = text_from_image(img_path) or ""
                 plain_text += f"\n[Image OCR]\n{ocr}\n"
-        return plain_text
+        return normalize(plain_text)
     except Exception as e:
         print(f"Error processing DOCX: {e}")
         return None
@@ -454,7 +484,7 @@ def text_from_image(
     try:
         with Image.open(path) as img:
             txt = pytesseract.image_to_string(img).strip()
-            return txt or ""
+            return normalize(txt) or ""
     except Exception as e:
         print(f"Failed image OCR: {e}")
         return None
@@ -483,7 +513,8 @@ def text_from_any(
             "created": datetime.fromtimestamp(stats.st_ctime).isoformat(),
             "modified": datetime.fromtimestamp(stats.st_mtime).isoformat(),
         }
-        return "\n".join(f"{k}: {v}" for k, v in info.items())
+        content = "\n".join(f"{k}: {v}" for k, v in info.items())
+        return normalize(content)
     except Exception as e:
         print(f"Error on other file: {e}")
         return None
@@ -523,7 +554,7 @@ def main() -> None:
     """
     import argparse
     parser = argparse.ArgumentParser(
-        description="Extract text or metadata from a file"
+        description="Extract text or metadata from any file or url"
     )
     parser.add_argument(
         "file",
