@@ -4,7 +4,7 @@
 # File: textextract.py
 # Author: Wadih Khairallah
 # Created: 2024-12-01 12:12:08
-# Modified: 2025-05-15 16:42:05
+# Modified: 2025-05-15 18:16:51
 # Enhanced with additional features
 
 import os
@@ -445,7 +445,7 @@ def extract_text(
             content = text_from_html(path)
             return content
 
-        if mime_type.startswith("text/") or mime_type in TEXT_MIME_TYPES:
+        elif mime_type.startswith("text/") or mime_type in TEXT_MIME_TYPES:
             with open(path, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
             return normalize_text(content)

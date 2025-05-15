@@ -1,3 +1,5 @@
+<img src="https://raw.githubusercontent.com/woodyk/mrblack/refs/heads/main/assets/mrblack-github-banner.png" alt="Mr. Black" style="width:100%; display:block; margin:0 auto;">
+
 # Mr. Black
 
 A comprehensive text extraction and PII detection toolkit for Python.
@@ -41,8 +43,44 @@ pip install mrblack
 
 Mr. Black provides comprehensive command-line utilities for both text extraction and PII detection.
 
-### Text Extraction CLI
+### textextract CLI
 
+```bash
+textextract --help
+
+usage: textextract [-h] [--metadata] [--summarize] [--sentences SENTENCES] [--analyze]
+                   [--translate [LANG]] [--output OUTPUT] [--password PASSWORD] [--scrape]
+                   [--max-pages MAX_PAGES] [--verbose] [--screenshot] [--chunked] [--no-js]
+                   [--list-languages]
+                   [source ...]
+
+Extract and analyze text from any file, URL, directory or wildcard pattern
+
+positional arguments:
+  source                Path(s) to file(s), URL, directory, or wildcard pattern
+
+options:
+  -h, --help            show this help message and exit
+  --metadata            Extract metadata instead of text
+  --summarize           Summarize the extracted text
+  --sentences SENTENCES
+                        Number of sentences in summary (default: 5)
+  --analyze             Perform text analysis
+  --translate [LANG]    Translate text to specified language code (e.g., 'es'), or list available
+                        languages if no code provided
+  --output OUTPUT       Output file path (default: stdout)
+  --password PASSWORD   Password for protected documents
+  --scrape              Scrape multiple pages from a website (for URLs only)
+  --max-pages MAX_PAGES
+                        Maximum pages to scrape when using --scrape (default: 5)
+  --verbose, -v         Increase verbosity (can be used multiple times)
+  --screenshot          Capture and extract text from screen
+  --chunked             Process large files in chunks to reduce memory usage
+  --no-js               Disable JavaScript rendering for web pages
+  --list-languages      List available translation languages
+```
+
+#### textextract Examples
 ```bash
 # Basic text extraction
 textextract document.pdf
@@ -81,7 +119,27 @@ textextract "*.pdf"
 textextract document.pdf --output results.txt
 ```
 
-### PII Detection CLI
+### pii CLI
+
+```bash
+pii --help
+
+usage: pii [-h] [--labels [LABEL ...]] [--json] [--serial] [--save SAVE] [path]
+
+Extract PII or patterns from files, dirs, URLs, or screenshots.
+
+positional arguments:
+  path                  File, directory, URL, or 'screenshot'
+
+options:
+  -h, --help            show this help message and exit
+  --labels [LABEL ...]  Labels to extract; no args lists all labels
+  --json                Output results as JSON
+  --serial              Per-file results for directories
+  --save SAVE           Save JSON output to specified file
+```
+
+#### pii Examples
 
 ```bash
 # Detect PII in a file
