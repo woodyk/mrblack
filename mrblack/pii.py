@@ -4,7 +4,7 @@
 # File: pii.py
 # Author: Wadih Khairallah
 # Created: 2024-12-01
-# Modified: 2025-05-13 15:41:21
+# Modified: 2025-05-14 18:54:59
 
 import os
 import re
@@ -26,7 +26,7 @@ from rich.table import Table
 from rich import box
 
 from .patterns import PATTERNS
-from mrblack.textextract import (
+from .textextract import (
     clean_path,
     extract_text,
     text_from_screenshot,

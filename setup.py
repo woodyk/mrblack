@@ -5,7 +5,7 @@
 # Author: Wadih Khairallah
 # Description: 
 # Created: 2025-04-28 14:40:57
-# Modified: 2025-05-13 15:48:24
+# Modified: 2025-05-15 16:43:26
 
 from setuptools import setup, find_packages
 from pathlib import Path
@@ -21,7 +21,7 @@ def read_requirements():
 
 setup(
     name="mrblack",
-    version="0.1.4",
+    version="0.1.8",
     author="Wadih Khairallah",
     author_email="woodyk@gmail.com",
     description="Data extraction and text-extraction tools",

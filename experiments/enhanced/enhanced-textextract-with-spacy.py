@@ -4,7 +4,7 @@
 # File: textextract.py
 # Author: Wadih Khairallah
 # Created: 2024-12-01 12:12:08
-# Modified: 2025-05-15 16:42:05
+# Modified: 2025-05-15 16:18:26
 # Enhanced with additional features
 
 import os
@@ -76,7 +76,7 @@ from rich.logging import RichHandler
 
 # Setup logging
 logging.basicConfig(
-    level=logging.ERROR,
+    level=logging.INFO,
     format="%(message)s",
     datefmt="[%X]",
     handlers=[RichHandler(rich_tracebacks=True)]
@@ -120,7 +120,7 @@ def clean_path(
     return None
 
 
-def normalize_text(
+def normalize(
     text: str
 ) -> str:
     """
@@ -184,7 +184,7 @@ def text_from_screenshot() -> str:
         img_gray.save(tmp_path)
 
         content = text_from_image(tmp_path)
-        return normalize_text(content)
+        return normalize(content)
     finally:
         if os.path.exists(tmp_path):
             try:
@@ -297,7 +297,7 @@ def text_from_html(html: str) -> str:
 
     text = soup.get_text(separator=" ")
 
-    return normalize_text(text)
+    return normalize(text)
 
 
 def text_from_url(
@@ -448,7 +448,7 @@ def extract_text(
         if mime_type.startswith("text/") or mime_type in TEXT_MIME_TYPES:
             with open(path, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
-            return normalize_text(content)
+            return normalize(content)
 
         elif mime_type in [
             "application/vnd.ms-excel",
@@ -538,7 +538,7 @@ def text_from_pdf_protected(pdf_path: str, password: str) -> Optional[str]:
             page = doc.load_page(i)
             text += page.get_text()
         doc.close()
-        return normalize_text(text)
+        return normalize(text)
     except Exception as e:
         logger.error(f"Error in PDF with password: {str(e)}")
         return None
@@ -733,7 +733,7 @@ def text_from_pdf(
             logger.warning(f"Could not extract tables from PDF: {e}")
         """
 
-        return normalize_text(plain_text)
+        return normalize(plain_text)
     except Exception as e:
         logger.error(f"Error processing PDF: {e}")
         return None
@@ -817,7 +817,7 @@ def extract_pdf_chunked(pdf_path: str, chunk_size: int = 10) -> Optional[str]:
             text_chunks.append(chunk_text)
             
         doc.close()
-        return normalize_text("".join(text_chunks))
+        return normalize("".join(text_chunks))
     except Exception as e:
         logger.error(f"Error processing PDF in chunks: {e}")
         return None
@@ -864,7 +864,7 @@ def text_from_doc(
     strings = extract_printable_strings(data)
     strings = clean_strings(strings)
     content = "\n".join(strings)
-    return normalize_text(content)
+    return normalize(content)
 
 
 def text_from_docx(
@@ -913,7 +913,7 @@ def text_from_docx(
                 ocr = text_from_image(img_path) or ""
                 plain_text += f"\n[Image OCR]\n{ocr}\n"
 
-        return normalize_text(plain_text)
+        return normalize(plain_text)
 
     except Exception as e:
         logger.error(f"Error processing DOCX: {e}")
@@ -990,7 +990,7 @@ def text_from_image(
             # Perform OCR with custom configuration
             custom_config = r'--oem 3 --psm 6'  # Default OCR Engine Mode and Page Segmentation Mode
             txt = pytesseract.image_to_string(img, config=custom_config).strip()
-            return normalize_text(txt) or ""
+            return normalize(txt) or ""
     except Exception as e:
         logger.error(f"Failed image OCR: {e}")
         return None
@@ -1042,7 +1042,7 @@ def text_from_any(
                 else:
                     content += f"{k}: {v}\n"
                     
-        return normalize_text(content)
+        return normalize(content)
     except Exception as e:
         logger.error(f"Error on other file: {e}")
         return None
@@ -1280,6 +1280,61 @@ def summarize_text(text: str, sentences: int = 5) -> str:
         return text
 
 
+def extract_entities(text: str) -> Dict[str, List[str]]:
+    """
+    Extract named entities from text.
+    
+    Args:
+        text (str): Text to analyze
+        
+    Returns:
+        Dict[str, List[str]]: Entities by category
+    """
+    try:
+        import spacy
+        
+        # Load the spaCy model
+        try:
+            nlp = spacy.load("en_core_web_sm")
+        except OSError:
+            logger.warning("Downloading spaCy model...")
+            import subprocess
+            subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"], 
+                           check=True)
+            nlp = spacy.load("en_core_web_sm")
+        
+        # Process the text
+        doc = nlp(text)
+        
+        # Extract entities
+        entities = {
+            "PERSON": [],
+            "ORG": [],
+            "GPE": [],  # Countries, cities, states
+            "LOC": [],  # Non-GPE locations
+            "DATE": [],
+            "TIME": [],
+            "MONEY": [],
+            "PRODUCT": [],
+            "EVENT": [],
+            "WORK_OF_ART": [],
+            "OTHER": []
+        }
+        
+        for ent in doc.ents:
+            if ent.label_ in entities:
+                if ent.text not in entities[ent.label_]:
+                    entities[ent.label_].append(ent.text)
+            else:
+                if ent.text not in entities["OTHER"]:
+                    entities["OTHER"].append(ent.text)
+        
+        return entities
+    except Exception as e:
+        logger.error(f"Entity extraction error: {e}")
+        return {"ERROR": [str(e)]}
+
+
 def analyze_text(text: str) -> Dict[str, Any]:
     """
     Perform basic text analytics.
@@ -1362,7 +1417,7 @@ def text_from_epub(epub_path: str) -> Optional[str]:
             if item.get_type() == epub.ITEM_DOCUMENT:
                 content.append(h.handle(item.get_content().decode('utf-8')))
         
-        return normalize_text("\n".join(content))
+        return normalize("\n".join(content))
     except ImportError:
         logger.error("ebooklib and/or html2text not installed")
         return "ebooklib and/or html2text packages are required for EPUB processing"
@@ -1405,7 +1460,7 @@ def text_from_pptx(pptx_path: str) -> Optional[str]:
             
             text.append("\n".join(slide_text))
         
-        return normalize_text("\n\n".join(text))
+        return normalize("\n\n".join(text))
     except ImportError:
         logger.error("python-pptx not installed")
         return "python-pptx package is required for PowerPoint processing"
@@ -1448,7 +1503,7 @@ def text_from_odt(odt_path: str) -> Optional[str]:
         else:
             final_text = content
         
-        return normalize_text(final_text)
+        return normalize(final_text)
     except ImportError:
         logger.error("odfpy not installed")
         return "odfpy package is required for ODT processing"
@@ -1504,7 +1559,7 @@ def extract_text_file_chunked(file_path: str, chunk_size: int = 1024*1024) -> st
                     break
                 result.append(chunk)
         
-        return normalize_text("".join(result))
+        return normalize("".join(result))
     except Exception as e:
         logger.error(f"Error processing text file in chunks: {e}")
         return ""
@@ -1574,6 +1629,11 @@ def main() -> None:
         type=int,
         default=5,
         help="Number of sentences in summary (default: 5)"
+    )
+    parser.add_argument(
+        "--entities",
+        action="store_true",
+        help="Extract named entities"
     )
     parser.add_argument(
         "--analyze",
@@ -1823,6 +1883,11 @@ def process_extracted_text(text: str, args) -> Union[str, Dict[str, Any]]:
         logger.info(f"Summarizing text (sentences: {args.sentences})")
         text = summarize_text(text, args.sentences)
     
+    if args.entities:
+        logger.info("Extracting named entities")
+        entities = extract_entities(text)
+        return entities
+    
     if args.analyze:
         logger.info("Analyzing text")
         analysis = analyze_text(text)
@@ -1879,6 +1944,9 @@ def start_api_server(host: str = 'localhost', port: int = 8000) -> None:
                         sentences = int(params.get('sentences', 5))
                         result["summary"] = summarize_text(text, sentences)
                         
+                    if params.get('entities') == 'true':
+                        result["entities"] = extract_entities(text)
+                        
                     if params.get('analyze') == 'true':
                         result["analysis"] = analyze_text(text)
                         
@@ -1911,6 +1979,9 @@ def start_api_server(host: str = 'localhost', port: int = 8000) -> None:
                 if params.get('summarize') == True:
                     sentences = int(params.get('sentences', 5))
                     result["summary"] = summarize_text(result["text"], sentences)
+                    
+                if params.get('entities') == True:
+                    result["entities"] = extract_entities(result["text"])
                     
                 if params.get('analyze') == True:
                     result["analysis"] = analyze_text(result["text"])
@@ -1972,6 +2043,9 @@ def start_api_server(host: str = 'localhost', port: int = 8000) -> None:
                 if params.get('summarize') == 'true':
                     sentences = int(params.get('sentences', 5))
                     result["summary"] = summarize_text(text, sentences)
+                    
+                if params.get('entities') == 'true':
+                    result["entities"] = extract_entities(text)
                     
                 if params.get('analyze') == 'true':
                     result["analysis"] = analyze_text(text)
