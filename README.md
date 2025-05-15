@@ -2,7 +2,7 @@
 
 A comprehensive text extraction and PII detection toolkit for Python.
 
-## 📋 Overview
+## Overview
 
 Mr. Black is a powerful, versatile library for extracting text from virtually any source and detecting PII (Personally Identifiable Information) in extracted content. It provides a unified interface for text extraction from:
 
