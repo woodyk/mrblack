@@ -5,7 +5,7 @@
 # Project: mrblack
 # Author: Based on work by Wadih Khairallah
 # Created: 2025-05-15
-# Modified: 2025-05-16 17:33:14
+# Modified: 2025-05-16 18:47:04
 #
 # Command line interface for mrblack toolkit
 
@@ -29,36 +29,19 @@ from rich import box
 from rich.markdown import Markdown
 from rich.json import JSON
 
-# Import internal modules
-try:
-    from mrblack.textextract import (
-        extract_text, extract_text_chunked, text_from_url,
-        text_from_screenshot, summarize_text, analyze_text,
-        translate_text, list_available_languages, detect_language,
-        is_url, clean_path, scrape_website, normalize_text,
-        text_from_image, text_from_pdf, text_from_excel,
-        extract_document_structure, text_from_object,
-        extract_metadata, text_from_docx
-    )
-    from mrblack.pii import (
-        extract_pii_text, extract_pii_file, extract_pii_url, 
-        extract_pii_image, extract_pii_screenshot, get_labels
-    )
-except ImportError:
-    # Local development/direct run support
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from textextract import (
-        extract_text, extract_text_chunked, text_from_url, text_from_screenshot,
-        summarize_text, analyze_text, extract_metadata,
-        translate_text, list_available_languages, detect_language,
-        is_url, clean_path, scrape_website, normalize_text,
-        text_from_image, text_from_pdf, text_from_excel, text_from_docx,
-        extract_document_structure
-    )
-    from pii import (
-        extract_pii_text, extract_pii_file, extract_pii_url,
-        extract_pii_image, extract_pii_screenshot, get_labels
-    )
+from mrblack.textextract import (
+    extract_text, extract_text_chunked, text_from_url,
+    text_from_screenshot, summarize_text, analyze_text,
+    translate_text, list_available_languages, detect_language,
+    is_url, clean_path, scrape_website, normalize_text,
+    text_from_image, text_from_pdf, text_from_excel,
+    extract_document_structure, text_from_object,
+    extract_metadata, text_from_docx
+)
+from mrblack.pii import (
+    extract_pii_text, extract_pii_file, extract_pii_url, 
+    extract_pii_image, extract_pii_screenshot, get_labels
+)
 
 # Setup console
 console = Console()
@@ -68,7 +51,12 @@ DEFAULT_MAX_PAGES = 5
 TIMESTAMP = datetime.now(pytz.UTC).isoformat()
 
 # Utility functions
-def handle_output(data: Any, save_path: Optional[str] = None, json_output: bool = False, raw_output: bool = False):
+def handle_output(
+    data: Any,
+    save_path: Optional[str] = None,
+    json_output: bool = False,
+    raw_output: bool = False
+):
     """Handle output in either JSON, raw text, or rich formatted mode"""
     if json_output:
         data["timestamp"] = TIMESTAMP
@@ -94,7 +82,9 @@ def handle_output(data: Any, save_path: Optional[str] = None, json_output: bool 
 
     return data
 
-def handle_stdin_data(stdin_format: Optional[str] = None) -> Optional[Tuple[str, str]]:
+def handle_stdin_data(
+    stdin_format: Optional[str] = None
+) -> Optional[Tuple[str, str]]:
     """
     Process data from stdin if available and return the temp file path and detected format
     
@@ -134,7 +124,10 @@ def handle_stdin_data(stdin_format: Optional[str] = None) -> Optional[Tuple[str,
                 pass
         return None
 
-def display_pii_results(results: Dict[str, List[str]], title: str = "PII Extraction Results"):
+def display_pii_results(
+    results: Dict[str, List[str]],
+    title: str = "PII Extraction Results"
+):
     """Pretty-print PII extraction results in a formatted table"""
     table = Table(
         title=title,
@@ -156,7 +149,9 @@ def display_pii_results(results: Dict[str, List[str]], title: str = "PII Extract
     console.print(Panel(table, border_style="blue"))
     return results
 
-def display_labels_in_columns(label_list: List[str]):
+def display_labels_in_columns(
+    label_list: List[str]
+):
     """Nicely print all available PII labels in columns"""
     import shutil
     
@@ -180,7 +175,11 @@ def display_labels_in_columns(label_list: List[str]):
     console.print(table)
     return labels
 
-def process_source(source: str, func: Callable, **kwargs) -> Any:
+def process_source(
+    source: str,
+    func: Callable,
+    **kwargs
+) -> Any:
     """Process a source (file, URL, screenshot) with the given function"""
     if source.lower() in ("screenshot", "screen", "capture"):
         console.print("[cyan]Capturing screenshot...[/cyan]")
@@ -253,7 +252,14 @@ def cli(ctx):
 @click.option('--output', help='Save output to a file')
 @click.option('--raw', is_flag=True, help='Output plain text without formatting')
 @click.option('--stdin-format', help='Specify format for stdin data (pdf, docx, txt, etc.)')
-def extract(source: Optional[str], password: Optional[str], chunked: bool, no_js: bool, output: Optional[str], raw: bool, stdin_format: Optional[str]):
+def extract(
+    source: Optional[str],
+    password: Optional[str],
+    chunked: bool, no_js: bool,
+    output: Optional[str],
+    raw: bool,
+    stdin_format: Optional[str]
+):
     """Extract text from a file, URL, or screenshot"""
     # Handle stdin if no source is provided
     if not source:
@@ -307,7 +313,14 @@ def extract(source: Optional[str], password: Optional[str], chunked: bool, no_js
 @click.option('--raw', is_flag=True, help='Output plain text without formatting')
 @click.option('--json', is_flag=True, help='Output results as JSON')
 @click.option('--stdin-format', help='Specify format for stdin data')
-def summarize(source: Optional[str], sentences: int, output: Optional[str], json: bool, raw: bool, stdin_format: Optional[str]):
+def summarize(
+    source: Optional[str],
+    sentences: int,
+    output: Optional[str],
+    json: bool,
+    raw: bool,
+    stdin_format: Optional[str]
+):
     """Summarize text from a file, URL, or screenshot"""
     # Handle stdin if no source is provided
     if not source:
@@ -361,7 +374,13 @@ def summarize(source: Optional[str], sentences: int, output: Optional[str], json
 @click.option('--json', is_flag=True, help='Output results as JSON')
 @click.option('--raw', is_flag=True, help='Output plain text without formatting')
 @click.option('--stdin-format', help='Specify format for stdin data')
-def analyze(source: Optional[str], output: Optional[str], json: bool, raw: bool, stdin_format: Optional[str]):
+def analyze(
+    source: Optional[str],
+    output: Optional[str],
+    json: bool,
+    raw: bool,
+    stdin_format: Optional[str]
+):
     """Analyze text to extract metrics and insights"""
     # Handle stdin if no source is provided
     if not source:
@@ -426,7 +445,13 @@ def analyze(source: Optional[str], output: Optional[str], json: bool, raw: bool,
 @click.option('--json', is_flag=True, help='Output results as JSON')
 @click.option('--raw', is_flag=True, help='Output plain text without formatting')
 @click.option('--stdin-format', help='Specify format for stdin data')
-def metadata(source: Optional[str], output: Optional[str], json: bool, raw: bool, stdin_format: Optional[str]):
+def metadata(
+    source: Optional[str],
+    output: Optional[str],
+    json: bool,
+    raw: bool,
+    stdin_format: Optional[str]
+):
     """Extract metadata from a file or URL"""
     # Handle stdin if no source is provided
     if not source:
@@ -489,7 +514,14 @@ def metadata(source: Optional[str], output: Optional[str], json: bool, raw: bool
 @click.option('--raw', is_flag=True, help='Output plain text without formatting')
 @click.option('--json', is_flag=True, help='Output results as JSON')
 @click.option('--stdin-format', help='Specify format for stdin data')
-def translate(lang: Optional[str], source: Optional[str], output: Optional[str], json: bool, raw: bool, stdin_format: Optional[str]):
+def translate(
+    lang: Optional[str],
+    source: Optional[str],
+    output: Optional[str],
+    json: bool,
+    raw: bool,
+    stdin_format: Optional[str]
+):
     """
     Translate text to another language or list available languages
     
@@ -580,8 +612,14 @@ def translate(lang: Optional[str], source: Optional[str], output: Optional[str],
 @click.option('--output', help='Save output to a file')
 @click.option('--json', is_flag=True, help='Output results as JSON')
 @click.option('--raw', is_flag=True, help='Output plain text without formatting')
-def scrape(url: str, max_pages: int, stay_on_domain: bool, 
-            output: Optional[str], json: bool, raw: bool):
+def scrape(
+    url: str,
+    max_pages: int,
+    stay_on_domain: bool, 
+    output: Optional[str],
+    json: bool,
+    raw: bool
+):
     """Scrape multiple pages from a website"""
     if not is_url(url):
         console.print(f"[red]Error:[/] '{url}' is not a valid URL.")
@@ -625,7 +663,11 @@ def scrape(url: str, max_pages: int, stay_on_domain: bool,
 @click.option('--output', help='Save output to a file')
 @click.option('--json', is_flag=True, help='Output results as JSON')
 @click.option('--raw', is_flag=True, help='Output plain text without formatting')
-def screenshot(output: Optional[str], json: bool, raw: bool):
+def screenshot(
+    output: Optional[str],
+    json: bool,
+    raw: bool
+):
     """Capture screenshot and extract text via OCR"""
     console.print("[cyan]Capturing screenshot...[/cyan]")
     
@@ -660,8 +702,15 @@ def screenshot(output: Optional[str], json: bool, raw: bool):
 @click.option('--json', is_flag=True, help='Output results as JSON')
 @click.option('--raw', is_flag=True, help='Output plain text without formatting')
 @click.option('--stdin-format', help='Specify format for stdin data')
-def pii(labels: Optional[str], source: Optional[str], serial: bool, 
-         output: Optional[str], json: bool, raw: bool, stdin_format: Optional[str]):
+def pii(
+    labels: Optional[str],
+    source: Optional[str],
+    serial: bool, 
+    output: Optional[str],
+    json: bool,
+    raw: bool,
+    stdin_format: Optional[str]
+):
     """
     Extract PII (Personally Identifiable Information) from text
     
@@ -762,7 +811,11 @@ def list():
 @click.option('--output', help='Save output to a file')
 @click.option('--json', is_flag=True, help='Output results as JSON')
 @click.option('--raw', is_flag=True, help='Output plain text without formatting')
-def list_languages(output: Optional[str], json: bool, raw: bool):
+def list_languages(
+    output: Optional[str],
+    json: bool,
+    raw: bool
+):
     """List available translation languages"""
     languages = list_available_languages()
 
@@ -783,7 +836,11 @@ def list_languages(output: Optional[str], json: bool, raw: bool):
 @click.option('--output', help='Save output to a file')
 @click.option('--json', is_flag=True, help='Output results as JSON')
 @click.option('--raw', is_flag=True, help='Output plain text without formatting')
-def list_pii_labels(output: Optional[str], json: bool, raw: bool):
+def list_pii_labels(
+    output: Optional[str],
+    json: bool,
+    raw: bool
+):
     """List available PII extraction labels"""
     all_labels = get_labels()
 
