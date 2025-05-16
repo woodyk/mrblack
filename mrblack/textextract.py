@@ -4,7 +4,7 @@
 # File: textextract.py
 # Author: Wadih Khairallah
 # Created: 2024-12-01 12:12:08
-# Modified: 2025-05-16 14:51:41
+# Modified: 2025-05-16 17:01:10
 # Enhanced with additional features
 
 import os

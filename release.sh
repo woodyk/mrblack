@@ -4,8 +4,7 @@
 # Author: Wadih Khairallah
 # Description: 
 # Created: 2025-05-12 15:39:52
-# Modified: 2025-05-12 17:37:43
-#!/bin/bash
+# Modified: 2025-05-16 18:31:25
 
 set -e  # Exit on first error
 set -o pipefail
@@ -20,7 +19,9 @@ echo "Setting up virtual environment..."
 rm -rf .venv
 python3 -m venv .venv
 . .venv/bin/activate
-pip3 install build twine
+pip3 install pdoc build twine
+pip3 install -r requirements.txt
+pdoc -d markdown -o docs/ mrblack
 
 # ---- Step 1: Clean old builds ----
 echo "Cleaning old build artifacts..."

@@ -5,7 +5,7 @@
 # Project: mrblack
 # Author: Based on work by Wadih Khairallah
 # Created: 2025-05-15
-# Modified: 2025-05-16 16:46:28
+# Modified: 2025-05-16 17:33:14
 #
 # Command line interface for mrblack toolkit
 
@@ -16,6 +16,8 @@ import json
 import click
 import importlib
 import tempfile
+import pytz
+from datetime import datetime
 from uuid import uuid4
 from pathlib import Path
 from typing import Optional, Dict, List, Any, Tuple, Union, Callable
@@ -30,12 +32,13 @@ from rich.json import JSON
 # Import internal modules
 try:
     from mrblack.textextract import (
-        extract_text, extract_text_chunked, text_from_url, text_from_screenshot, 
-        summarize_text, analyze_text, extract_metadata, 
+        extract_text, extract_text_chunked, text_from_url,
+        text_from_screenshot, summarize_text, analyze_text,
         translate_text, list_available_languages, detect_language,
         is_url, clean_path, scrape_website, normalize_text,
-        text_from_image, text_from_pdf, text_from_excel, text_from_docx,
-        extract_document_structure
+        text_from_image, text_from_pdf, text_from_excel,
+        extract_document_structure, text_from_object,
+        extract_metadata, text_from_docx
     )
     from mrblack.pii import (
         extract_pii_text, extract_pii_file, extract_pii_url, 
@@ -62,18 +65,19 @@ console = Console()
 
 # Constants
 DEFAULT_MAX_PAGES = 5
+TIMESTAMP = datetime.now(pytz.UTC).isoformat()
 
 # Utility functions
 def handle_output(data: Any, save_path: Optional[str] = None, json_output: bool = False, raw_output: bool = False):
     """Handle output in either JSON, raw text, or rich formatted mode"""
     if json_output:
+        data["timestamp"] = TIMESTAMP
         json_data = json.dumps(data, indent=4, ensure_ascii=False)
-        if save_path:
-            with open(save_path, 'w', encoding='utf-8') as f:
-                f.write(json_data)
-
         data = JSON(json_data)
-    
+
+    elif raw_output:
+        if not isinstance(data, str):
+            data = text_from_object(data)
 
     if save_path:
         if isinstance(data, str):
@@ -295,17 +299,15 @@ def extract(source: Optional[str], password: Optional[str], chunked: bool, no_js
     else:
         console.print("[red]No text could be extracted from the source.[/red]")
 
-
 # Summarize command
 @cli.command()
 @click.argument('source', required=False)
 @click.option('--sentences', type=int, default=5, help='Number of sentences in summary')
 @click.option('--output', help='Save output to a file')
-@click.option('--json', is_flag=True, help='Output results as JSON')
 @click.option('--raw', is_flag=True, help='Output plain text without formatting')
+@click.option('--json', is_flag=True, help='Output results as JSON')
 @click.option('--stdin-format', help='Specify format for stdin data')
-def summarize(source: Optional[str], sentences: int, output: Optional[str], 
-               json: bool, raw: bool, stdin_format: Optional[str]):
+def summarize(source: Optional[str], sentences: int, output: Optional[str], json: bool, raw: bool, stdin_format: Optional[str]):
     """Summarize text from a file, URL, or screenshot"""
     # Handle stdin if no source is provided
     if not source:
@@ -335,6 +337,12 @@ def summarize(source: Optional[str], sentences: int, output: Optional[str],
     
     # Summarize the text
     summary = summarize_text(text, sentences)
+
+    if json:
+        summary = {
+            "source": clean_path(source),
+            "summary": summary
+        }
     
     if not json and not raw:
         console.print(Panel(
@@ -343,9 +351,8 @@ def summarize(source: Optional[str], sentences: int, output: Optional[str],
             border_style="green",
             expand=False
         ))
-    
-    # Handle output options
-    handle_output(summary, output, json, raw)
+    else: 
+        handle_output(summary, output, json, raw)
 
 # Analyze command
 @cli.command()
@@ -409,9 +416,8 @@ def analyze(source: Optional[str], output: Optional[str], json: bool, raw: bool,
                 words_table.add_row(word, str(count))
             
             console.print(words_table)
-    
-    # Handle output options
-    handle_output(analysis, output, json, raw)
+    else: 
+        handle_output(analysis, output, json, raw)
 
 # Metadata command
 @cli.command()
@@ -472,20 +478,18 @@ def metadata(source: Optional[str], output: Optional[str], json: bool, raw: bool
         
         add_metadata_to_table(metadata)
         console.print(table)
-    
-    # Handle output options
-    handle_output(metadata, output, json, raw)
+    else:
+        handle_output(metadata, output, json, raw)
 
 # Translate command
 @cli.command()
 @click.argument('lang', required=False)
 @click.argument('source', required=False)
 @click.option('--output', help='Save output to a file')
-@click.option('--json', is_flag=True, help='Output results as JSON')
 @click.option('--raw', is_flag=True, help='Output plain text without formatting')
+@click.option('--json', is_flag=True, help='Output results as JSON')
 @click.option('--stdin-format', help='Specify format for stdin data')
-def translate(lang: Optional[str], source: Optional[str], output: Optional[str], 
-               json: bool, raw: bool, stdin_format: Optional[str]):
+def translate(lang: Optional[str], source: Optional[str], output: Optional[str], json: bool, raw: bool, stdin_format: Optional[str]):
     """
     Translate text to another language or list available languages
     
@@ -496,7 +500,7 @@ def translate(lang: Optional[str], source: Optional[str], output: Optional[str],
     if not lang:
         languages = list_available_languages()
         if json or raw:
-            handle_output(languages, output, json, raw)
+            handle_output(languages, output, False, raw)
         else:
             # Display available languages
             table = Table(title="Available Translation Languages", box=box.ROUNDED)
@@ -545,17 +549,26 @@ def translate(lang: Optional[str], source: Optional[str], output: Optional[str],
     if not translated:
         console.print(f"[red]Translation failed. Please check if the language code '{lang}' is valid.[/red]")
         return
-    
-    if not json and not raw:
+
+    if json:
+        data = {
+            "source": clean_path(source),
+            "source_language": source_lang,
+            "destination_language": lang,
+            "translated_text": translated
+        }
+    else:
+        data = translated
+
+    if not raw and not json:
         console.print(Panel(
             translated, 
             title=f"Translated Text ({source_lang} → {lang})",
             border_style="green",
             expand=False
         ))
-    
-    # Handle output options
-    handle_output(translated, output, json, raw)
+    else: 
+        handle_output(data, output, json, raw)
 
 # Scrape command
 @cli.command()
@@ -603,9 +616,9 @@ def scrape(url: str, max_pages: int, stay_on_domain: bool,
             border_style="green",
             expand=False
         ))
-    
-    # Handle output options
-    handle_output(results, output, json, raw)
+
+    else: 
+        handle_output(results, output, json, raw)
 
 # Screenshot command
 @cli.command()
@@ -621,6 +634,12 @@ def screenshot(output: Optional[str], json: bool, raw: bool):
     if not text:
         console.print("[red]No text could be extracted from the screenshot.[/red]")
         return
+
+    if json:
+        text = {
+            "source": "screenshot",
+            "text": text
+        }
     
     if not json and not raw:
         console.print(Panel(
@@ -629,9 +648,8 @@ def screenshot(output: Optional[str], json: bool, raw: bool):
             border_style="green",
             expand=False
         ))
-    
-    # Handle output options
-    handle_output(text, output, json, raw)
+    else: 
+        handle_output(text, output, json, raw)
 
 # PII command
 @cli.command()
