@@ -5,7 +5,7 @@
 # Author: Wadih Khairallah
 # Description: 
 # Created: 2025-05-12 16:47:22
-# Modified: 2025-05-15 16:30:26
+# Modified: 2025-05-16 16:38:12
 
 from .pii import (
     extract_pii_text,
@@ -18,6 +18,7 @@ from .textextract import (
     extract_text,
     extract_text_with_password,
     extract_exif,
+    extract_strings,
     extract_metadata,
     text_from_screenshot,
     text_from_url,
@@ -52,6 +53,7 @@ __all__ = [
     "extract_text",
     "extract_exif",
     "extract_metadata",
+    "extract_strings",
     "text_from_screenshot",
     "text_from_url",
     "text_from_html",

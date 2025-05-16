@@ -5,7 +5,7 @@
 # Project: mrblack
 # Author: Based on work by Wadih Khairallah
 # Created: 2025-05-15
-# Modified: 2025-05-16 01:10:14
+# Modified: 2025-05-16 16:46:28
 #
 # Command line interface for mrblack toolkit
 
@@ -64,38 +64,31 @@ console = Console()
 DEFAULT_MAX_PAGES = 5
 
 # Utility functions
-def handle_json_output(data: Any, save_path: Optional[str] = None, json_output: bool = False, raw_output: bool = False):
+def handle_output(data: Any, save_path: Optional[str] = None, json_output: bool = False, raw_output: bool = False):
     """Handle output in either JSON, raw text, or rich formatted mode"""
     if json_output:
-        json_data = json.dumps(data, indent=2, ensure_ascii=False)
+        json_data = json.dumps(data, indent=4, ensure_ascii=False)
         if save_path:
             with open(save_path, 'w', encoding='utf-8') as f:
                 f.write(json_data)
-        console.print(JSON(json_data))
-    elif raw_output:
-        # For raw output, print the data as plain text without formatting
+
+        data = JSON(json_data)
+    
+
+    if save_path:
         if isinstance(data, str):
-            raw_text = data
-        else:
-            # Convert dictionaries, lists, etc. to plain text representation
-            raw_text = json.dumps(data, indent=2, ensure_ascii=False)
-
-        if save_path:
             with open(save_path, 'w', encoding='utf-8') as f:
-                f.write(raw_text)
+                f.write(data)
+        else:
+            with open(save_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
 
-        # Print without Rich formatting
-        console.print(raw_text, highlight=False, emoji=False, markup=False)
-    else:
-        if save_path:
-            if isinstance(data, str):
-                with open(save_path, 'w', encoding='utf-8') as f:
-                    f.write(data)
-            else:
-                with open(save_path, 'w', encoding='utf-8') as f:
-                    json.dump(data, f, indent=2, ensure_ascii=False)
-            console.print(f"[green]Output saved to:[/] {save_path}")
+        console.print(f"[green]Output saved to:[/] {save_path}")
         return data
+
+    console.print(data)
+
+    return data
 
 def handle_stdin_data(stdin_format: Optional[str] = None) -> Optional[Tuple[str, str]]:
     """
@@ -129,7 +122,7 @@ def handle_stdin_data(stdin_format: Optional[str] = None) -> Optional[Tuple[str,
             
         return temp_path, format_type
     except Exception as e:
-        console.print(f"[red]Error processing stdin data:[/] {e}")
+        #console.print(f"[red]Error processing stdin data:[/] {e}")
         if os.path.exists(temp_path):
             try:
                 os.unlink(temp_path)
@@ -254,18 +247,16 @@ def cli(ctx):
 @click.option('--chunked', is_flag=True, help='Process large files in chunks to reduce memory usage')
 @click.option('--no-js', is_flag=True, help='Disable JavaScript rendering for web pages')
 @click.option('--output', help='Save output to a file')
-@click.option('--json', is_flag=True, help='Output results as JSON')
 @click.option('--raw', is_flag=True, help='Output plain text without formatting')
 @click.option('--stdin-format', help='Specify format for stdin data (pdf, docx, txt, etc.)')
-def extract(source: Optional[str], password: Optional[str], chunked: bool, 
-             no_js: bool, output: Optional[str], json: bool, raw: bool, stdin_format: Optional[str]):
+def extract(source: Optional[str], password: Optional[str], chunked: bool, no_js: bool, output: Optional[str], raw: bool, stdin_format: Optional[str]):
     """Extract text from a file, URL, or screenshot"""
     # Handle stdin if no source is provided
     if not source:
         stdin_data = handle_stdin_data(stdin_format)
         if stdin_data:
             source = stdin_data[0]
-            console.print(f"[cyan]Processing stdin data (format: {stdin_data[1]})...[/cyan]")
+            #console.print(f"[cyan]Processing stdin data (format: {stdin_data[1]})...[/cyan]")
         else:
             console.print("[yellow]No input source provided.[/yellow]")
             return
@@ -294,16 +285,16 @@ def extract(source: Optional[str], password: Optional[str], chunked: bool,
         else:
             text = extract_text(path)
     
-    if text:
-        if not json and not raw:
+    if text is not None:
+        if raw:
+            handle_output(text, output, False, raw)
+        else:
             # Format for display with Rich panel
             console.print(Panel(text, title="Extracted Text", border_style="green", expand=False))
             console.print(f"[cyan]Total length:[/] {len(text)} characters")
-        
-        # Handle output options
-        handle_json_output(text, output, json, raw)
     else:
         console.print("[red]No text could be extracted from the source.[/red]")
+
 
 # Summarize command
 @cli.command()
@@ -321,7 +312,7 @@ def summarize(source: Optional[str], sentences: int, output: Optional[str],
         stdin_data = handle_stdin_data(stdin_format)
         if stdin_data:
             source = stdin_data[0]
-            console.print(f"[cyan]Processing stdin data (format: {stdin_data[1]})...[/cyan]")
+            #console.print(f"[cyan]Processing stdin data (format: {stdin_data[1]})...[/cyan]")
         else:
             console.print("[yellow]No input source provided.[/yellow]")
             return
@@ -354,7 +345,7 @@ def summarize(source: Optional[str], sentences: int, output: Optional[str],
         ))
     
     # Handle output options
-    handle_json_output(summary, output, json, raw)
+    handle_output(summary, output, json, raw)
 
 # Analyze command
 @cli.command()
@@ -370,7 +361,7 @@ def analyze(source: Optional[str], output: Optional[str], json: bool, raw: bool,
         stdin_data = handle_stdin_data(stdin_format)
         if stdin_data:
             source = stdin_data[0]
-            console.print(f"[cyan]Processing stdin data (format: {stdin_data[1]})...[/cyan]")
+            #console.print(f"[cyan]Processing stdin data (format: {stdin_data[1]})...[/cyan]")
         else:
             console.print("[yellow]No input source provided.[/yellow]")
             return
@@ -420,7 +411,7 @@ def analyze(source: Optional[str], output: Optional[str], json: bool, raw: bool,
             console.print(words_table)
     
     # Handle output options
-    handle_json_output(analysis, output, json, raw)
+    handle_output(analysis, output, json, raw)
 
 # Metadata command
 @cli.command()
@@ -436,7 +427,7 @@ def metadata(source: Optional[str], output: Optional[str], json: bool, raw: bool
         stdin_data = handle_stdin_data(stdin_format)
         if stdin_data:
             source = stdin_data[0]
-            console.print(f"[cyan]Processing stdin data (format: {stdin_data[1]})...[/cyan]")
+            #console.print(f"[cyan]Processing stdin data (format: {stdin_data[1]})...[/cyan]")
         else:
             console.print("[yellow]No input source provided.[/yellow]")
             return
@@ -483,7 +474,7 @@ def metadata(source: Optional[str], output: Optional[str], json: bool, raw: bool
         console.print(table)
     
     # Handle output options
-    handle_json_output(metadata, output, json, raw)
+    handle_output(metadata, output, json, raw)
 
 # Translate command
 @cli.command()
@@ -505,7 +496,7 @@ def translate(lang: Optional[str], source: Optional[str], output: Optional[str],
     if not lang:
         languages = list_available_languages()
         if json or raw:
-            handle_json_output(languages, output, json, raw)
+            handle_output(languages, output, json, raw)
         else:
             # Display available languages
             table = Table(title="Available Translation Languages", box=box.ROUNDED)
@@ -523,7 +514,7 @@ def translate(lang: Optional[str], source: Optional[str], output: Optional[str],
         stdin_data = handle_stdin_data(stdin_format)
         if stdin_data:
             source = stdin_data[0]
-            console.print(f"[cyan]Processing stdin data (format: {stdin_data[1]})...[/cyan]")
+            #console.print(f"[cyan]Processing stdin data (format: {stdin_data[1]})...[/cyan]")
         else:
             console.print("[yellow]No input source provided.[/yellow]")
             return
@@ -564,7 +555,7 @@ def translate(lang: Optional[str], source: Optional[str], output: Optional[str],
         ))
     
     # Handle output options
-    handle_json_output(translated, output, json, raw)
+    handle_output(translated, output, json, raw)
 
 # Scrape command
 @cli.command()
@@ -614,7 +605,7 @@ def scrape(url: str, max_pages: int, stay_on_domain: bool,
         ))
     
     # Handle output options
-    handle_json_output(results, output, json, raw)
+    handle_output(results, output, json, raw)
 
 # Screenshot command
 @cli.command()
@@ -640,7 +631,7 @@ def screenshot(output: Optional[str], json: bool, raw: bool):
         ))
     
     # Handle output options
-    handle_json_output(text, output, json, raw)
+    handle_output(text, output, json, raw)
 
 # PII command
 @cli.command()
@@ -666,7 +657,7 @@ def pii(labels: Optional[str], source: Optional[str], serial: bool,
             # Just list available labels
             all_labels = get_labels()
             if json or raw:
-                handle_json_output(all_labels, output, json, raw)
+                handle_output(all_labels, output, json, raw)
             else:
                 display_labels_in_columns(all_labels)
             return
@@ -686,13 +677,13 @@ def pii(labels: Optional[str], source: Optional[str], serial: bool,
         stdin_data = handle_stdin_data(stdin_format)
         if stdin_data:
             source = stdin_data[0]
-            console.print(f"[cyan]Processing stdin data (format: {stdin_data[1]})...[/cyan]")
+            #console.print(f"[cyan]Processing stdin data (format: {stdin_data[1]})...[/cyan]")
         else:
             # If no labels were provided either, just list all available labels
             if not label_list:
                 all_labels = get_labels()
                 if json or raw:
-                    handle_json_output(all_labels, output, json, raw)
+                    handle_output(all_labels, output, json, raw)
                 else:
                     display_labels_in_columns(all_labels)
                 return
@@ -729,7 +720,7 @@ def pii(labels: Optional[str], source: Optional[str], serial: bool,
     
     # Handle output
     if json or raw:
-        handle_json_output(result, output, json, raw)
+        handle_output(result, output, json, raw)
     else:
         if isinstance(result, dict):
             if serial and all(isinstance(v, dict) for v in result.values()):
@@ -758,7 +749,7 @@ def list_languages(output: Optional[str], json: bool, raw: bool):
     languages = list_available_languages()
 
     if json or raw:
-        handle_json_output(languages, output, json, raw)
+        handle_output(languages, output, json, raw)
     else:
         # Display available languages
         table = Table(title="Available Translation Languages", box=box.ROUNDED)
@@ -779,7 +770,7 @@ def list_pii_labels(output: Optional[str], json: bool, raw: bool):
     all_labels = get_labels()
 
     if json or raw:
-        handle_json_output(all_labels, output, json, raw)
+        handle_output(all_labels, output, json, raw)
     else:
         display_labels_in_columns(all_labels)
 

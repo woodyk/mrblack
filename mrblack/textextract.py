@@ -4,12 +4,13 @@
 # File: textextract.py
 # Author: Wadih Khairallah
 # Created: 2024-12-01 12:12:08
-# Modified: 2025-05-15 21:47:00
+# Modified: 2025-05-16 14:51:41
 # Enhanced with additional features
 
 import os
 import re
 import sys
+import pwd
 import json
 import math
 import socket
@@ -845,8 +846,13 @@ def text_from_doc(
             b']{%d,}' % min_length
         )
         found = pattern.findall(data)
-        return list(dict.fromkeys(m.decode(errors='ignore').strip()
-                                   for m in found))
+
+        results = []
+        for m in found:
+            value = m.decode(errors='ignore').strip()
+            results.append(value)
+
+        return results
 
     def clean_strings(
         strs: List[str]
@@ -861,9 +867,11 @@ def text_from_doc(
 
     with open(filepath, 'rb') as f:
         data = f.read()
+
     strings = extract_printable_strings(data)
     strings = clean_strings(strings)
     content = "\n".join(strings)
+
     return normalize_text(content)
 
 
@@ -996,6 +1004,62 @@ def text_from_image(
         return None
 
 
+def extract_strings(file_path, min_length=4):
+    """
+    Extract printable strings from a file, similar to the Unix 'strings' command.
+    
+    Args:
+        file_path (str): Path to the file to extract strings from
+        min_length (int, optional): Minimum length of strings to extract. Defaults to 4.
+        
+    Returns:
+        list: List of printable strings found in the file
+    """
+    import string
+    file_path = clean_path(file_path)
+
+    
+    # Define printable characters (excluding tabs and newlines)
+    printable_chars = set(string.printable) - set('\t\n\r\v\f')
+    
+    result = []
+    current_string = ""
+    
+    # Read the file in binary mode
+    try:
+        with open(file_path, 'rb') as file:
+            # Read the file byte by byte
+            for byte in file.read():
+                # Convert byte to character
+                char = chr(byte)
+                
+                # If character is printable, add to current string
+                if char in printable_chars:
+                    current_string += char
+                # If not printable and we have a string of minimum length, add to results
+                elif len(current_string) >= min_length:
+                    if current_string == "Sj[d":
+                        pass
+                    else:
+                        result.append(current_string)
+                    current_string = ""
+                # If not printable and current string is too short, reset current string
+                else:
+                    current_string = ""
+        
+        # Don't forget to add the last string if it meets the minimum length
+        if len(current_string) >= min_length:
+            result.append(current_string)
+        
+        return result
+    except FileNotFoundError:
+        print(f"Error: File '{file_path}' not found.", file=sys.stderr)
+        return None
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return None
+
+
 def text_from_any(
     file_path: str
 ) -> Optional[str]:
@@ -1008,6 +1072,7 @@ def text_from_any(
     Returns:
         Optional[str]: Plain-text report, or None on error.
     """
+    content = ""
     path = clean_path(file_path)
     if not path:
         return None
@@ -1019,20 +1084,15 @@ def text_from_any(
             "created": datetime.fromtimestamp(stats.st_ctime).isoformat(),
             "modified": datetime.fromtimestamp(stats.st_mtime).isoformat(),
         }
+
+        for k, v in info.items():
+            content += "File System Data:\n"
+            content += f"{k}: {v}\n"
         
         # Try to extract EXIF if available
         exif = extract_exif(path)
         if exif:
             info["exif"] = exif
-            
-        # Get file hash
-        md5_hash = hashlib.md5(open(path,'rb').read()).hexdigest()
-        info["md5"] = md5_hash
-        
-        content = "\n".join(f"{k}: {v}" for k, v in info.items() if k != "exif")
-        
-        # Add formatted EXIF data if available
-        if exif:
             content += "\n\nEXIF Data:\n"
             for k, v in exif.items():
                 if isinstance(v, dict):
@@ -1041,11 +1101,77 @@ def text_from_any(
                         content += f"  {sub_k}: {sub_v}\n"
                 else:
                     content += f"{k}: {v}\n"
-                    
-        return normalize_text(content)
+
+        # Get file hash
+        md5_hash = hashlib.md5(open(path,'rb').read()).hexdigest()
+        info["md5"] = md5_hash
+
+        # Get strings
+        strings = extract_strings(path)
+        if strings:
+            info["strings"] = strings
+            content += "\n\nStrings Data:\n"
+            clean_strings = "\n".join(strings)
+            content += clean_strings
+
+        return text_from_object(info) 
     except Exception as e:
         logger.error(f"Error on other file: {e}")
         return None
+
+
+def text_from_object(variable, indent=0):
+    """
+    Convert a variable to plain text with specific formatting.
+    
+    Args:
+        variable: Any Python variable to convert to plain text
+        indent (int): Current indentation level for nested structures
+        
+    Returns:
+        str: Plain text representation of the variable
+    """
+    # If already a string, return it directly
+    if isinstance(variable, str):
+        return variable
+    
+    # Define indent string
+    indent_str = '    ' * indent
+    
+    # Handle lists, tuples, and sets
+    if isinstance(variable, (list, tuple, set)):
+        result = []
+        for item in variable:
+            # For nested structures, handle recursively
+            if isinstance(item, (list, tuple, set, dict)):
+                nested_text = text_from_object(item, indent + 1)
+                # Add indentation to each line
+                nested_lines = nested_text.split('\n')
+                for line in nested_lines:
+                    result.append(f"{indent_str}{line}")
+            else:
+                result.append(f"{indent_str}{item}")
+        return '\n'.join(result)
+    
+    # Handle dictionaries
+    elif isinstance(variable, dict):
+        result = []
+        for key, value in variable.items():
+            # For nested structures, handle recursively
+            if isinstance(value, (list, tuple, set, dict)):
+                result.append(f"{indent_str}{key}:")
+                nested_text = text_from_object(value, indent + 1)
+                # Add indentation to each line
+                nested_lines = nested_text.split('\n')
+                for line in nested_lines:
+                    result.append(f"{indent_str}{line}")
+            else:
+                result.append(f"{indent_str}{key}: {value}")
+        return '\n'.join(result)
+    
+    # Handle other types (int, float, bool, etc.)
+    else:
+        return str(variable)
 
 
 def extract_metadata(
@@ -1098,7 +1224,6 @@ def extract_metadata(
             meta["exif"] = exif
             
         # Get file owner and permissions
-        import pwd
         try:
             meta["owner"] = pwd.getpwuid(stats.st_uid).pw_name
         except KeyError:
@@ -1322,8 +1447,6 @@ def analyze_text(text: str) -> Dict[str, Any]:
         return {"error": str(e)}
 
 
-# Support for additional file types
-
 def text_from_epub(epub_path: str) -> Optional[str]:
     """
     Extract text from EPUB ebooks.
@@ -1510,8 +1633,6 @@ def extract_text_file_chunked(file_path: str, chunk_size: int = 1024*1024) -> st
         return ""
 
 
-# Batch processing
-
 def batch_extract(file_paths: List[str], max_workers: Optional[int] = None) -> Dict[str, str]:
     """
     Process multiple files concurrently.
@@ -1567,158 +1688,12 @@ def process_extracted_text(text: str, args) -> Union[str, Dict[str, Any]]:
     return text
 
 
-# Simple REST API server
-def start_api_server(host: str = 'localhost', port: int = 8000) -> None:
-    """
-    Start a simple API server to expose the text extraction functionality.
-    
-    Args:
-        host (str): Host to bind to
-        port (int): Port to listen on
-    """
-    try:
-        from flask import Flask, request, jsonify
-        
-        app = Flask(__name__)
-        
-        @app.route('/extract', methods=['POST'])
-        def extract_endpoint():
-            if 'file' in request.files:
-                file = request.files['file']
-                temp_path = os.path.join(tempfile.gettempdir(), f"upload_{uuid4().hex}")
-                file.save(temp_path)
-                
-                try:
-                    params = request.form.to_dict()
-                    
-                    # Extract text
-                    if params.get('password'):
-                        text = extract_text_with_password(temp_path, params['password'])
-                    else:
-                        text = extract_text(temp_path)
-                        
-                    if not text:
-                        return jsonify({"error": "No text extracted"}), 400
-                    
-                    # Process text according to parameters
-                    result = {"text": text}
-                    
-                    if params.get('summarize') == 'true':
-                        sentences = int(params.get('sentences', 5))
-                        result["summary"] = summarize_text(text, sentences)
-                        
-                    if params.get('analyze') == 'true':
-                        result["analysis"] = analyze_text(text)
-                        
-                    if params.get('translate'):
-                        translated = translate_text(text, params['translate'])
-                        if translated:
-                            result["translated"] = translated
-                    
-                    return jsonify(result)
-                finally:
-                    if os.path.exists(temp_path):
-                        os.remove(temp_path)
-            
-            elif 'url' in request.json:
-                url = request.json['url']
-                params = request.json
-                
-                if params.get('scrape') == True:
-                    max_pages = int(params.get('max_pages', 5))
-                    results = scrape_website(url, max_pages=max_pages)
-                    combined_text = "\n\n".join([f"=== {url} ===\n{text}" for url, text in results.items()])
-                    result = {"text": combined_text, "pages_scraped": len(results)}
-                else:
-                    text = text_from_url(url)
-                    if not text:
-                        return jsonify({"error": "No text extracted from URL"}), 400
-                    result = {"text": text}
-                
-                # Process text according to parameters
-                if params.get('summarize') == True:
-                    sentences = int(params.get('sentences', 5))
-                    result["summary"] = summarize_text(result["text"], sentences)
-                    
-                if params.get('analyze') == True:
-                    result["analysis"] = analyze_text(result["text"])
-                    
-                if params.get('translate'):
-                    translated = translate_text(result["text"], params['translate'])
-                    if translated:
-                        result["translated"] = translated
-                
-                return jsonify(result)
-            
-            return jsonify({"error": "No file or URL provided"}), 400
-        
-        @app.route('/metadata', methods=['POST'])
-        def metadata_endpoint():
-            if 'file' in request.files:
-                file = request.files['file']
-                temp_path = os.path.join(tempfile.gettempdir(), f"upload_{uuid4().hex}")
-                file.save(temp_path)
-                
-                try:
-                    metadata = extract_metadata(temp_path)
-                    return jsonify(metadata)
-                finally:
-                    if os.path.exists(temp_path):
-                        os.remove(temp_path)
-            
-            elif 'url' in request.json:
-                url = request.json['url']
-                try:
-                    # For URLs, we can provide limited metadata
-                    import requests
-                    resp = requests.head(url)
-                    metadata = {
-                        "url": url,
-                        "status_code": resp.status_code,
-                        "content_type": resp.headers.get('Content-Type'),
-                        "content_length": resp.headers.get('Content-Length'),
-                        "server": resp.headers.get('Server'),
-                        "last_modified": resp.headers.get('Last-Modified'),
-                    }
-                    return jsonify(metadata)
-                except Exception as e:
-                    return jsonify({"error": str(e)}), 400
-        
-            return jsonify({"error": "No file or URL provided"}), 400
-        
-        @app.route('/screenshot', methods=['GET'])
-        def screenshot_endpoint():
-            try:
-                text = text_from_screenshot()
-                if not text:
-                    return jsonify({"error": "No text extracted from screenshot"}), 400
-                
-                result = {"text": text}
-                params = request.args.to_dict()
-                
-                # Process text according to parameters
-                if params.get('summarize') == 'true':
-                    sentences = int(params.get('sentences', 5))
-                    result["summary"] = summarize_text(text, sentences)
-                    
-                if params.get('analyze') == 'true':
-                    result["analysis"] = analyze_text(text)
-                
-                return jsonify(result)
-            except Exception as e:
-                return jsonify({"error": str(e)}), 500
-        
-        logger.info(f"Starting API server on {host}:{port}")
-        app.run(host=host, port=port)
-    except ImportError:
-        logger.error("Flask not installed. Install with: pip install flask")
-        
-
 def main() -> None:
     """
     Enhanced CLI entry point for text extraction, metadata, and analytics.
     Supports both file/URL inputs and stdin piped data.
     """
+    import os
     import argparse
     import glob
     import tempfile

@@ -43,131 +43,133 @@ pip install mrblack
 
 Mr. Black provides comprehensive command-line utilities for both text extraction and PII detection.
 
-### textextract CLI
+### mrblack CLI
 
 ```bash
-textextract --help
+mrblack
 
-usage: textextract [-h] [--metadata] [--summarize] [--sentences SENTENCES] [--analyze]
-                   [--translate [LANG]] [--output OUTPUT] [--password PASSWORD] [--scrape]
-                   [--max-pages MAX_PAGES] [--verbose] [--screenshot] [--chunked] [--no-js]
-                   [--list-languages]
-                   [source ...]
+Usage: mrblack [OPTIONS] COMMAND [ARGS]...
 
-Extract and analyze text from any file, URL, directory or wildcard pattern
+  mrblack: Universal data extraction and analysis toolkit
 
-positional arguments:
-  source                Path(s) to file(s), URL, directory, or wildcard pattern
+  Extract text and data from any source, analyze content, and identify
+  patterns.
 
-options:
-  -h, --help            show this help message and exit
-  --metadata            Extract metadata instead of text
-  --summarize           Summarize the extracted text
-  --sentences SENTENCES
-                        Number of sentences in summary (default: 5)
-  --analyze             Perform text analysis
-  --translate [LANG]    Translate text to specified language code (e.g., 'es'), or list available
-                        languages if no code provided
-  --output OUTPUT       Output file path (default: stdout)
-  --password PASSWORD   Password for protected documents
-  --scrape              Scrape multiple pages from a website (for URLs only)
-  --max-pages MAX_PAGES
-                        Maximum pages to scrape when using --scrape (default: 5)
-  --verbose, -v         Increase verbosity (can be used multiple times)
-  --screenshot          Capture and extract text from screen
-  --chunked             Process large files in chunks to reduce memory usage
-  --no-js               Disable JavaScript rendering for web pages
-  --list-languages      List available translation languages
+Options:
+  --version  Show the version and exit.
+  --help     Show this message and exit.
+
+Commands:
+  analyze     Analyze text to extract metrics and insights
+  extract     Extract text from a file, URL, or screenshot
+  list        List available options and capabilities
+  metadata    Extract metadata from a file or URL
+  pii         Extract PII (Personally Identifiable Information) from text
+  scrape      Scrape multiple pages from a website
+  screenshot  Capture screenshot and extract text via OCR
+  summarize   Summarize text from a file, URL, or screenshot
+  translate   Translate text to another language or list available languages
 ```
 
-#### textextract Examples
+#### mrblack Text Utils
+
 ```bash
+# Basic usage
+mrblack [ACTION] [SOURCE] [MODIFIER]
+
 # Basic text extraction
-textextract document.pdf
+mrblack extract document.pdf
 
 # Extract from a URL
-textextract https://example.com
+mrblack extract https://example.com
 
 # Capture and extract from screen
-textextract screenshot
+mrblack screenshot
 
 # Extract and summarize
-textextract document.pdf --summarize --sentences 3
+mrblack summarize document.pdf --sentences 3
 
 # Extract and translate
-textextract document.pdf --translate es
+mrblack translate ja https://example.com
 
 # Extract metadata only
-textextract document.pdf --metadata
+mrblack metadata document.docx
 
 # List available translation languages
-textextract --list-languages
+mrblack translate
 
 # Scrape multiple pages from a website
-textextract https://example.com --scrape --max-pages 10
+mrblack scrape 10 https://example.com
+
+# Output results as plaintext
+mrblack extract https://example.com --raw
 
 # Process files in chunks (for large files)
-textextract large_document.pdf --chunked
+mrblack extract large_document.docx --chunked
 
-# Process all files in a directory
-textextract /path/to/documents/
-
-# Process files matching a pattern
-textextract "*.pdf"
+# Analyze text content of a file
+mrblack analyze filename.wav
 
 # Save output to a file
-textextract document.pdf --output results.txt
+mrblack extract document.html --output outfile.txt
+
+# Process text from images with OCR
+mrblack extract image.png
 ```
 
-### pii CLI
-
-```bash
-pii --help
-
-usage: pii [-h] [--labels [LABEL ...]] [--json] [--serial] [--save SAVE] [path]
-
-Extract PII or patterns from files, dirs, URLs, or screenshots.
-
-positional arguments:
-  path                  File, directory, URL, or 'screenshot'
-
-options:
-  -h, --help            show this help message and exit
-  --labels [LABEL ...]  Labels to extract; no args lists all labels
-  --json                Output results as JSON
-  --serial              Per-file results for directories
-  --save SAVE           Save JSON output to specified file
-```
-
-#### pii Examples
+#### mrblack PII Utils
 
 ```bash
 # Detect PII in a file
-pii resume.pdf
+mrblack pii document.pdf
 
 # Detect PII from a URL
-pii https://example.com
+mrblack pii https://example.com
 
 # Detect PII from screen capture
-pii screenshot
+mrblack pii screenshot
 
 # List all available PII labels
-pii --labels
+mrblack pii
 
 # Filter for specific PII types
-pii document.pdf --labels email phone_number credit_card
+mrblack pii url,email document.pdf
 
 # Output results as JSON
-pii document.pdf --json
+mrblack pii document.pdf --json
 
 # Save results to a file
-pii document.pdf --json --save results.json
+mrblack pii document.pdf --json --output results.json
+```
 
-# Process an entire directory
-pii /path/to/documents/
+#### mrblack Pipe Examples
 
-# Get per-file results for a directory
-pii /path/to/documents/ --serial
+Mrblack can process piped data input.
+
+```bash
+# Basic redirect
+cat filename | mrblack [ACTION]
+
+# Translate a website to Russian
+curl https://example.com | mrblack translate ru
+```
+
+#### Use Cases
+
+Some basic use cases for using mrblack.
+
+```bash
+# Extract email addresses from a website
+mrblack pii email https://example.com
+
+# Summarize a document
+mrblack summarize document.pdf --raw
+
+# Get the number of unique words in a document
+mrblack analyze document.docx --json | jq ".unique_words"
+
+# Extract information about any file on your system and it's content.
+mrblack extract /bin/bash
 ```
 
 ## Mr. Black Library Usage
