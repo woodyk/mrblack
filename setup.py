@@ -5,7 +5,7 @@
 # Author: Wadih Khairallah
 # Description: 
 # Created: 2025-04-28 14:40:57
-# Modified: 2025-05-15 16:43:26
+# Modified: 2025-05-16 01:10:01
 
 from setuptools import setup, find_packages
 from pathlib import Path
@@ -33,6 +33,7 @@ setup(
     python_requires=">=3.8",
     entry_points={
         "console_scripts": [
+            "mrblack = mrblack.cli:main",
             "pii = mrblack.pii:main",
             "textextract = mrblack.textextract:main",
         ],

@@ -228,17 +228,12 @@ Here are examples of various data types:
     Decimal: 37.7749, -122.4194; 40.7128, -74.0060
     Degrees, minutes, seconds: 40°42'51"N 74°00'21"W, 37°46'29"N 122°25'09"W
 
+472 SW 23rd Ave.
+Norsk, DE 399394
+
+
 1HGCM82633A004352, JH4TB2H26CC000000, 5YJSA1CN5DFP01234
 
 https://patternwithparams.com/test.html?a=c&b=n
 test stuff
 https://patternwithout.com/test.html
-
-ok test
-
-9545591445
-(954) 559-1445
-(954)559-1445
-954.559.1445
-+1 (954) 559-1445
-1-954-559-1445

@@ -5,7 +5,7 @@
 # Author: Wadih Khairallah
 # Description: Process text data with NER detection, validation, and rich output
 # Created: 2025-04-03 21:52:13
-# Modified: 2025-04-23 17:52:45
+# Modified: 2025-05-15 20:19:28
 
 import os
 import warnings
@@ -13,6 +13,7 @@ import re
 import logging
 import sys
 from gliner import GLiNER
+#from gliner_labels import LABELS
 from rich.console import Console
 from rich.table import Table
 from rich import box
@@ -26,14 +27,14 @@ logging.getLogger("transformers").setLevel(logging.ERROR)
 warnings.filterwarnings("ignore", category=UserWarning)
 sys.stdout = sys.__stdout__  # Restore stdout after imports
 
-def process_text_in_chunks(text, model, labels, chunk_size=500, max_length=None):
+def process_text_in_chunks(text, model, LABELS, chunk_size=500, max_length=None):
     all_entities = []
     if max_length is not None and len(text) > max_length:
         text = text[:max_length]
     
     for i in range(0, len(text), chunk_size):
         chunk = text[i:i + chunk_size]
-        entities = model.predict_entities(chunk, labels)
+        entities = model.predict_entities(chunk, LABELS)
         for entity in entities:
             entity["start"] += i
             entity["end"] += i
@@ -71,6 +72,7 @@ def validate_entities(entities):
 
     corrected_entities = []
     for entity in entities:
+        print(entity)
         text = entity["text"].strip()
         label = entity["label"]
 
@@ -121,7 +123,8 @@ def display_entities(entities):
 model = GLiNER.from_pretrained("urchade/gliner_multi_pii-v1")
 
 # Comprehensive list of PII entity types
-labels = [
+"""
+LABELS = [
     "PERSON", "ORGANIZATION", "LOCATION", "PHONE", "EMAIL", "ADDRESS", "DATE", "TIME",
     "SSN", "CREDIT_CARD", "BANK_ACCOUNT", "PASSPORT", "DRIVER_LICENSE", "USERNAME",
     "URL", "IP_ADDRESS", "HEALTH_INSURANCE", "DOB", "MEDICATION", "CPF", "TAX_ID",
@@ -129,6 +132,10 @@ labels = [
     "REGISTRATION", "STUDENT_ID", "INSURANCE", "FLIGHT", "BLOOD_TYPE", "CVV",
     "RESERVATION", "SOCIAL_MEDIA", "LICENSE_PLATE", "CNPJ", "POSTAL_CODE",
     "SERIAL_NUMBER", "VEHICLE_REG", "FAX", "VISA", "TRANSACTION", "BIRTH_CERTIFICATE"
+]
+"""
+LABELS = [
+    "PERSON", "ADDRESS", "LOCATION", "ORGANIZATION", "POSTAL_CODE", "ID"
 ]
 
 file_path = sys.argv[1]
@@ -138,7 +145,8 @@ with open(file_path, "r") as f:
     data = f.read()
 
 # Process and validate entities
-entities = process_text_in_chunks(data, model, labels, chunk_size=500)
+entities = process_text_in_chunks(data, model, LABELS, chunk_size=500)
+display_entities(entities)
 corrected_entities = validate_entities(entities)
 
 # Display results

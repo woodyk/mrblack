@@ -28,3 +28,4 @@ six
 speechrecognition
 tabula-py
 uuid
+click
