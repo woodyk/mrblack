@@ -5,29 +5,33 @@
 # Project: mrblack
 # Author: Based on work by Wadih Khairallah
 # Created: 2025-05-15
-# Modified: 2025-05-16 18:47:04
+# Modified: 2025-05-17 19:28:15
 #
 # Command line interface for mrblack toolkit
 
 import os
 import re
 import sys
-import json
+import json as j
 import click
 import importlib
 import tempfile
+import getpass
+import socket
 import pytz
+import math
+
 from datetime import datetime
 from uuid import uuid4
 from pathlib import Path
 from typing import Optional, Dict, List, Any, Tuple, Union, Callable
 
-from rich.console import Console
+from rich.console import Console, Group
 from rich.panel import Panel
 from rich.table import Table
 from rich import box
 from rich.markdown import Markdown
-from rich.json import JSON
+from rich.pretty import Pretty
 
 from mrblack.textextract import (
     extract_text, extract_text_chunked, text_from_url,
@@ -36,7 +40,7 @@ from mrblack.textextract import (
     is_url, clean_path, scrape_website, normalize_text,
     text_from_image, text_from_pdf, text_from_excel,
     extract_document_structure, text_from_object,
-    extract_metadata, text_from_docx
+    extract_metadata, text_from_docx, tree_from_object,
 )
 from mrblack.pii import (
     extract_pii_text, extract_pii_file, extract_pii_url, 
@@ -53,34 +57,64 @@ TIMESTAMP = datetime.now(pytz.UTC).isoformat()
 # Utility functions
 def handle_output(
     data: Any,
+    source: str,
     save_path: Optional[str] = None,
     json_output: bool = False,
     raw_output: bool = False
 ):
     """Handle output in either JSON, raw text, or rich formatted mode"""
     if json_output:
-        data["timestamp"] = TIMESTAMP
-        json_data = json.dumps(data, indent=4, ensure_ascii=False)
-        data = JSON(json_data)
+        if isinstance(data, str):
+            data = {
+                "timestamp": TIMESTAMP,
+                "source": source,
+                "content": data
+            }
+        elif isinstance(data, dict):
+            data["timestamp"] = TIMESTAMP
+            data["source"] = source
 
-    elif raw_output:
+        output = j.dumps(data, indent=4, ensure_ascii=False)
+
+        print(output)
+        return output
+
+    if raw_output:
         if not isinstance(data, str):
-            data = text_from_object(data)
+            output = j.dumps(data, indent=4, ensure_ascii=False)
+        else:
+            output = data
+
+        print(output)
+        return
 
     if save_path:
-        if isinstance(data, str):
-            with open(save_path, 'w', encoding='utf-8') as f:
-                f.write(data)
-        else:
-            with open(save_path, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
+        if not isinstance(data, str):
+            data = j.dumps(data, indent=4, ensure_ascii=False)
+
+        with open(save_path, 'w', encoding='utf-8') as f:
+            f.write(data)
 
         console.print(f"[green]Output saved to:[/] {save_path}")
         return data
 
-    console.print(data)
+    if isinstance(data, Group):
+        console.print(data)
+        return data
+    elif not isinstance(data, str):
+        output = Pretty(data)
+    else:
+        output = data
+
+    console.print(Panel(
+        output, 
+        title=f"Source: {source}",
+        border_style="green",
+        expand=True
+    ))
 
     return data
+
 
 def handle_stdin_data(
     stdin_format: Optional[str] = None
@@ -124,6 +158,7 @@ def handle_stdin_data(
                 pass
         return None
 
+
 def display_pii_results(
     results: Dict[str, List[str]],
     title: str = "PII Extraction Results"
@@ -149,31 +184,51 @@ def display_pii_results(
     console.print(Panel(table, border_style="blue"))
     return results
 
+
 def display_labels_in_columns(
-    label_list: List[str]
-):
-    """Nicely print all available PII labels in columns"""
-    import shutil
-    
-    labels = sorted(label_list)
-    width = shutil.get_terminal_size((80, 20)).columns
-    col_width = max(len(l) for l in labels) + 4
-    cols = max(1, width // col_width)
-    rows = (len(labels) + cols - 1) // cols
-    
-    table = Table(box=box.ROUNDED, show_header=False)
-    for _ in range(cols):
-        table.add_column(no_wrap=True)
-        
-    for r in range(rows):
-        row = []
-        for c in range(cols):
-            idx = c * rows + r
-            row.append(labels[idx] if idx < len(labels) else "")
-        table.add_row(*row)
-        
+    data: Union[List[str], Dict[str, str]],
+    columns: int = 4,
+    title: str = "Sorted Items"
+) -> None:
+    if isinstance(data, dict):
+        pairs = sorted(data.items())
+        rows = math.ceil(len(pairs) / columns)
+        table = Table(title=title, expand=True, show_header=False)
+
+        # Create column headers: key1, val1, key2, val2, ...
+        for i in range(columns):
+            table.add_column(justify="right", style="cyan", no_wrap=True)
+            table.add_column(justify="left", style="green", no_wrap=True)
+
+        # Build rows top-to-bottom, column-major
+        grid = [[("", "") for _ in range(columns)] for _ in range(rows)]
+        for i, (k, v) in enumerate(pairs):
+            row = i % rows
+            col = i // rows
+            if col < columns:
+                grid[row][col] = (k, v)
+
+        for row in grid:
+            flat_row = [cell for pair in row for cell in pair]
+            table.add_row(*flat_row)
+
+    else:
+        # Handle list[str] input as before
+        items = sorted(data)
+        rows = math.ceil(len(items) / columns)
+        grid = [["" for _ in range(columns)] for _ in range(rows)]
+        for i, item in enumerate(items):
+            row = i % rows
+            col = i // rows
+            grid[row][col] = item
+
+        table = Table(title=title, expand=True, show_header=False)
+        for _ in range(columns):
+            table.add_column(justify="left", style="cyan", no_wrap=True)
+        for row in grid:
+            table.add_row(*row)
+
     console.print(table)
-    return labels
 
 def process_source(
     source: str,
@@ -251,6 +306,7 @@ def cli(ctx):
 @click.option('--no-js', is_flag=True, help='Disable JavaScript rendering for web pages')
 @click.option('--output', help='Save output to a file')
 @click.option('--raw', is_flag=True, help='Output plain text without formatting')
+@click.option('--json', is_flag=True, help='Output results as JSON')
 @click.option('--stdin-format', help='Specify format for stdin data (pdf, docx, txt, etc.)')
 def extract(
     source: Optional[str],
@@ -258,6 +314,7 @@ def extract(
     chunked: bool, no_js: bool,
     output: Optional[str],
     raw: bool,
+    json: bool,
     stdin_format: Optional[str]
 ):
     """Extract text from a file, URL, or screenshot"""
@@ -296,12 +353,8 @@ def extract(
             text = extract_text(path)
     
     if text is not None:
-        if raw:
-            handle_output(text, output, False, raw)
-        else:
-            # Format for display with Rich panel
-            console.print(Panel(text, title="Extracted Text", border_style="green", expand=False))
-            console.print(f"[cyan]Total length:[/] {len(text)} characters")
+        handle_output(text, source, output, json, raw)
+        console.print(f"[cyan]Total length:[/] {len(text)} characters")
     else:
         console.print("[red]No text could be extracted from the source.[/red]")
 
@@ -351,21 +404,7 @@ def summarize(
     # Summarize the text
     summary = summarize_text(text, sentences)
 
-    if json:
-        summary = {
-            "source": clean_path(source),
-            "summary": summary
-        }
-    
-    if not json and not raw:
-        console.print(Panel(
-            summary, 
-            title=f"Summary ({sentences} sentences)",
-            border_style="green",
-            expand=False
-        ))
-    else: 
-        handle_output(summary, output, json, raw)
+    handle_output(summary, source, output, json, raw)
 
 # Analyze command
 @cli.command()
@@ -410,33 +449,7 @@ def analyze(
     
     # Analyze the text
     analysis = analyze_text(text)
-    
-    if not json and not raw:
-        # Create a rich display of analysis results
-        table = Table(title="Text Analysis Results", box=box.ROUNDED)
-        table.add_column("Metric", style="cyan")
-        table.add_column("Value", style="green")
-        
-        # Add general metrics
-        for key, value in analysis.items():
-            if key == "most_common_words":
-                continue  # Handle separately
-            table.add_row(key.replace("_", " ").title(), str(value))
-        
-        console.print(table)
-        
-        # Display most common words in a separate table
-        if "most_common_words" in analysis:
-            words_table = Table(title="Most Common Words", box=box.ROUNDED)
-            words_table.add_column("Word", style="cyan")
-            words_table.add_column("Count", style="green", justify="right")
-            
-            for word, count in analysis["most_common_words"]:
-                words_table.add_row(word, str(count))
-            
-            console.print(words_table)
-    else: 
-        handle_output(analysis, output, json, raw)
+    handle_output(analysis, source, output, json, raw)
 
 # Metadata command
 @cli.command()
@@ -462,49 +475,9 @@ def metadata(
         else:
             console.print("[yellow]No input source provided.[/yellow]")
             return
-    
-    # Process based on source type
-    if is_url(source):
-        # For URLs, use requests to get basic metadata
-        import requests
-        try:
-            resp = requests.head(source)
-            metadata = {
-                "url": source,
-                "status_code": resp.status_code,
-                "content_type": resp.headers.get('Content-Type'),
-                "content_length": resp.headers.get('Content-Length'),
-                "server": resp.headers.get('Server'),
-                "last_modified": resp.headers.get('Last-Modified'),
-            }
-        except Exception as e:
-            console.print(f"[red]Error fetching URL metadata:[/] {e}")
-            return
-    else:
-        path = clean_path(source)
-        if not path:
-            console.print(f"[red]Error:[/] Invalid path '{source}'")
-            return
-        
-        metadata = extract_metadata(path)
-    
-    if not json and not raw:
-        # Create a rich display of metadata
-        table = Table(title="Metadata", box=box.ROUNDED)
-        table.add_column("Property", style="cyan")
-        table.add_column("Value", style="green")
-        
-        def add_metadata_to_table(data, prefix=""):
-            for key, value in data.items():
-                if isinstance(value, dict):
-                    add_metadata_to_table(value, prefix=f"{key}.")
-                else:
-                    table.add_row(f"{prefix}{key}".replace("_", " ").title(), str(value))
-        
-        add_metadata_to_table(metadata)
-        console.print(table)
-    else:
-        handle_output(metadata, output, json, raw)
+
+    metadata = extract_metadata(source)
+    handle_output(metadata, source, output, json, raw)
 
 # Translate command
 @cli.command()
@@ -532,7 +505,7 @@ def translate(
     if not lang:
         languages = list_available_languages()
         if json or raw:
-            handle_output(languages, output, False, raw)
+            handle_output(languages, source, output, json, raw)
         else:
             # Display available languages
             table = Table(title="Available Translation Languages", box=box.ROUNDED)
@@ -592,15 +565,7 @@ def translate(
     else:
         data = translated
 
-    if not raw and not json:
-        console.print(Panel(
-            translated, 
-            title=f"Translated Text ({source_lang} → {lang})",
-            border_style="green",
-            expand=False
-        ))
-    else: 
-        handle_output(data, output, json, raw)
+    handle_output(data, source, output, json, raw)
 
 # Scrape command
 @cli.command()
@@ -636,27 +601,31 @@ def scrape(
         return
     
     if not json and not raw:
+        render = []
         # Display summary of scraped pages
-        table = Table(title=f"Scraped {len(results)} Pages", box=box.ROUNDED)
-        table.add_column("URL", style="cyan")
-        table.add_column("Content Length", style="green", justify="right")
+        table = Table(title=f"Scraped {len(results)} Pages", box=box.ROUNDED, expand=True)
+        table.add_column("URL", style="cyan", justify="right")
+        table.add_column("Content Length", style="green", justify="left")
         
         for page_url, content in results.items():
             table.add_row(page_url, str(len(content)))
         
-        console.print(table)
+        render.append(table)
         
         # Show preview of first page
         first_url = next(iter(results))
-        console.print(Panel(
-            results[first_url], 
-            title=f"Preview of first page: {first_url}",
-            border_style="green",
-            expand=False
-        ))
+        for u in results:
+            render.append(Panel(
+                results[u], 
+                title=f"{u}",
+                border_style="green",
+                expand=True
+            ))
 
-    else: 
-        handle_output(results, output, json, raw)
+        results = Group(*render)
+
+    handle_output(results, url, output, json, raw)
+
 
 # Screenshot command
 @cli.command()
@@ -670,6 +639,8 @@ def screenshot(
 ):
     """Capture screenshot and extract text via OCR"""
     console.print("[cyan]Capturing screenshot...[/cyan]")
+    user = getpass.getuser()
+    host = socket.gethostname()
     
     text = text_from_screenshot()
     
@@ -679,19 +650,12 @@ def screenshot(
 
     if json:
         text = {
-            "source": "screenshot",
-            "text": text
+            "user": user,
+            "source": host,
+            "content": text
         }
     
-    if not json and not raw:
-        console.print(Panel(
-            text, 
-            title="Text Extracted from Screenshot",
-            border_style="green",
-            expand=False
-        ))
-    else: 
-        handle_output(text, output, json, raw)
+    handle_output(text, host, output, json, raw)
 
 # PII command
 @cli.command()
@@ -724,7 +688,7 @@ def pii(
             # Just list available labels
             all_labels = get_labels()
             if json or raw:
-                handle_output(all_labels, output, json, raw)
+                handle_output(all_labels, source, output, json, raw)
             else:
                 display_labels_in_columns(all_labels)
             return
@@ -750,7 +714,7 @@ def pii(
             if not label_list:
                 all_labels = get_labels()
                 if json or raw:
-                    handle_output(all_labels, output, json, raw)
+                    handle_output(all_labels, None, output, json, raw)
                 else:
                     display_labels_in_columns(all_labels)
                 return
@@ -787,7 +751,7 @@ def pii(
     
     # Handle output
     if json or raw:
-        handle_output(result, output, json, raw)
+        handle_output(result, source, output, json, raw)
     else:
         if isinstance(result, dict):
             if serial and all(isinstance(v, dict) for v in result.values()):
@@ -820,8 +784,10 @@ def list_languages(
     languages = list_available_languages()
 
     if json or raw:
-        handle_output(languages, output, json, raw)
+        handle_output(languages, None, output, json, raw)
     else:
+        display_labels_in_columns(languages, columns=2)
+        """
         # Display available languages
         table = Table(title="Available Translation Languages", box=box.ROUNDED)
         table.add_column("Code", style="cyan")
@@ -831,6 +797,7 @@ def list_languages(
             table.add_row(code, name)
 
         console.print(table)
+        """
 
 @list.command(name="pii-labels")
 @click.option('--output', help='Save output to a file')
@@ -845,9 +812,9 @@ def list_pii_labels(
     all_labels = get_labels()
 
     if json or raw:
-        handle_output(all_labels, output, json, raw)
+        handle_output(all_labels, None, output, json, raw)
     else:
-        display_labels_in_columns(all_labels)
+        display_labels_in_columns(all_labels, columns=4)
 
 
 def main():

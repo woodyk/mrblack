@@ -1,0 +1,19 @@
+stylometric_vector = [
+    avg_word_length,
+    avg_sentence_length,
+    lexical_density,
+    noun_to_verb_ratio,
+    hapax_legomena_ratio,
+    readability_composite,
+    overall_polarity,
+    polarity_variance,
+    overall_subjectivity,
+    pos_tag_entropy,
+    function_word_freq_mean,
+    tfidf_entropy,
+    named_entity_count_norm,
+    cohesion_score,
+    paragraph_length_variance,
+    ngram_repetition_score
+]
+

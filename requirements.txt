@@ -29,3 +29,8 @@ speechrecognition
 tabula-py
 uuid
 click
+
+# alt
+textblob
+networkx
+scikit-learn
