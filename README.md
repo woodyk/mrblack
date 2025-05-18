@@ -36,7 +36,11 @@ The library also includes robust PII detection capabilities with customizable re
 ## Installation
 
 ```bash
+# pip installation
 pip install mrblack
+
+# pipx installation
+pipx install mrblack
 ```
 
 ## Command Line Interface
