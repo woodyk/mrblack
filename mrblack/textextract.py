@@ -4,7 +4,7 @@
 # File: textextract.py
 # Author: Wadih Khairallah
 # Created: 2024-12-01 12:12:08
-# Modified: 2025-05-17 19:04:56
+# Modified: 2025-05-17 20:00:08
 # Enhanced with additional features
 
 import os
@@ -28,7 +28,7 @@ from logging import Logger
 from pathlib import Path
 
 from uuid import uuid4
-from datetime import datetime
+from datetime import datetime, timezone
 from io import StringIO
 from typing import (
     Optional,
@@ -1725,7 +1725,7 @@ def extract_url_metadata(
 
     metadata = {
         "url": url,
-        "timestamp_utc": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "domain": {},
         "request": {},
         "response": {},
@@ -1847,7 +1847,7 @@ def extract_url_metadata(url: str, timeout: int = 10) -> dict:
     }
     metadata = {
         "url": url,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "request": {},
         "response": {},
         "headers": {},
@@ -3010,7 +3010,7 @@ def analyze_text(
 
         # Get metadata about the analysis
         metadata = {
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "analysis_version": "2.0",
             "text_length_category": "short" if len(words) < 100 else "medium" if len(words) < 500 else "long",
             "advanced_analysis_performed": advanced,
@@ -3271,364 +3271,215 @@ def process_extracted_text(text: str, args) -> Union[str, Dict[str, Any]]:
 
 
 def main() -> None:
-    """
-    Enhanced CLI entry point for text extraction, metadata, and analytics.
-    Supports both file/URL inputs and stdin piped data.
-    """
     import os
-    import argparse
-    import glob
-    import tempfile
     import sys
+    import glob
+    import json
+    import argparse
+    import tempfile
+    import logging
+    import concurrent.futures
+
     from io import BytesIO
-    
+
+    # Custom argparse action for --translate
     class TranslateAction(argparse.Action):
         def __call__(self, parser, namespace, values, option_string=None):
-            # If no value is provided, set to 'list' to trigger language listing
-            if values is None:
-                setattr(namespace, self.dest, 'list')
-            else:
-                setattr(namespace, self.dest, values)
-    
+            setattr(namespace, self.dest, values if values else 'list')
+
     parser = argparse.ArgumentParser(
         description="Extract and analyze text from any file, URL, directory, wildcard pattern, or stdin"
     )
-    parser.add_argument(
-        "source",
-        nargs="*",  # Make source completely optional
-        help="Path(s) to file(s), URL, directory, or wildcard pattern (omit to read from stdin)"
-    )
-    parser.add_argument(
-        "--metadata",
-        action="store_true",
-        help="Extract metadata instead of text"
-    )
-    parser.add_argument(
-        "--summarize",
-        action="store_true",
-        help="Summarize the extracted text"
-    )
-    parser.add_argument(
-        "--sentences",
-        type=int,
-        default=5,
-        help="Number of sentences in summary (default: 5)"
-    )
-    parser.add_argument(
-        "--analyze",
-        action="store_true",
-        help="Perform text analysis"
-    )
-    parser.add_argument(
-        "--translate",
-        action=TranslateAction,
-        nargs="?",  # Allow --translate with no argument to list languages
-        metavar="LANG",
-        help="Translate text to specified language code (e.g., 'es'), or list available languages if no code provided"
-    )
-    parser.add_argument(
-        "--output",
-        type=str,
-        help="Output file path (default: stdout)"
-    )
-    parser.add_argument(
-        "--password",
-        type=str,
-        help="Password for protected documents"
-    )
-    parser.add_argument(
-        "--scrape",
-        action="store_true",
-        help="Scrape multiple pages from a website (for URLs only)"
-    )
-    parser.add_argument(
-        "--max-pages",
-        type=int,
-        default=5,
-        help="Maximum pages to scrape when using --scrape (default: 5)"
-    )
-    parser.add_argument(
-        "--verbose", "-v",
-        action="count",
-        default=0,
-        help="Increase verbosity (can be used multiple times)"
-    )
-    parser.add_argument(
-        "--screenshot",
-        action="store_true",
-        help="Capture and extract text from screen"
-    )
-    parser.add_argument(
-        "--chunked",
-        action="store_true",
-        help="Process large files in chunks to reduce memory usage"
-    )
-    parser.add_argument(
-        "--no-js",
-        action="store_true",
-        help="Disable JavaScript rendering for web pages"
-    )
-    parser.add_argument(
-        "--list-languages",
-        action="store_true",
-        help="List available translation languages"
-    )
-    parser.add_argument(
-        "--stdin-format",
-        type=str,
-        help="Specify input format when reading from stdin (pdf, docx, txt, etc.)"
-    )
-    
+    parser.add_argument("source", nargs="*", help="Path(s), URL, or leave blank for stdin")
+    parser.add_argument("--metadata", action="store_true")
+    parser.add_argument("--summarize", action="store_true")
+    parser.add_argument("--sentences", type=int, default=5)
+    parser.add_argument("--analyze", action="store_true")
+    parser.add_argument("--translate", action=TranslateAction, nargs="?", metavar="LANG")
+    parser.add_argument("--list-languages", action="store_true")
+    parser.add_argument("--output", type=str)
+    parser.add_argument("--password", type=str)
+    parser.add_argument("--scrape", action="store_true")
+    parser.add_argument("--max-pages", type=int, default=5)
+    parser.add_argument("--verbose", "-v", action="count", default=0)
+    parser.add_argument("--screenshot", action="store_true")
+    parser.add_argument("--chunked", action="store_true")
+    parser.add_argument("--no-js", action="store_true")
+    parser.add_argument("--stdin-format", type=str)
+
     args = parser.parse_args()
-    
-    # Configure logging level based on verbosity
-    if args.verbose == 0:
-        logger.setLevel(logging.WARNING)
-    elif args.verbose == 1:
-        logger.setLevel(logging.INFO)
-    else:
-        logger.setLevel(logging.DEBUG)
-    
-    # Handle translation language listing (in two ways for better usability)
-    if args.translate == "list" or args.list_languages:
-        try:
-            logger.info("Fetching available languages...")
-            languages = list_available_languages()
-            
-            print("\n[Available Translation Languages]")
-            # Format the output as a table with columns
-            max_code_len = max(len(code) for code in languages.keys())
-            max_name_len = max(len(name) for name in languages.values())
-            format_str = f"  {{:<{max_code_len}}}  {{:<{max_name_len}}}"
-            
-            print(format_str.format("Code", "Language"))
-            print(format_str.format("-" * max_code_len, "-" * max_name_len))
-            
-            for code, name in sorted(languages.items(), key=lambda x: x[1]):  # Sort by language name
-                print(format_str.format(code, name))
-            
-            sys.exit(0)
-        except Exception as e:
-            logger.error(f"Error listing languages: {e}")
-            sys.exit(1)
-    
-    # Function to handle output
+
+    # Logging level
+    logging.basicConfig(level=logging.WARNING)
+    if args.verbose == 1:
+        logging.getLogger().setLevel(logging.INFO)
+    elif args.verbose >= 2:
+        logging.getLogger().setLevel(logging.DEBUG)
+
     def output_result(result):
         if args.output:
-            with open(args.output, 'w', encoding='utf-8') as f:
-                if isinstance(result, dict):
-                    json.dump(result, f, indent=2, ensure_ascii=False)
-                else:
-                    f.write(str(result))
-            logger.info(f"Output written to {args.output}")
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(result, f, indent=2, ensure_ascii=False) if isinstance(result, dict) else f.write(str(result))
         else:
-            if isinstance(result, dict):
-                print(json.dumps(result, indent=2, ensure_ascii=False))
-            else:
-                print(result)
-    
-    # Handle screenshot mode
+            print(json.dumps(result, indent=2, ensure_ascii=False) if isinstance(result, dict) else result)
+
+    # Translation language listing
+    if args.translate == "list" or args.list_languages:
+        languages = list_available_languages()
+        print("\n[Available Translation Languages]")
+        print("  {:<8}  {}".format("Code", "Language"))
+        print("  {:<8}  {}".format("----", "--------"))
+        for code, name in sorted(languages.items(), key=lambda x: x[1]):
+            print(f"  {code:<8}  {name}")
+        sys.exit(0)
+
+    # Screenshot processing
     if args.screenshot:
-        logger.info("Capturing screenshot...")
         text = text_from_screenshot()
         if not text:
-            logger.error("No text extracted from screenshot.")
+            logging.error("No text extracted from screenshot.")
             sys.exit(1)
-        
-        # Process the text according to arguments
         result = process_extracted_text(text, args)
         output_result(result)
         sys.exit(0)
-    
-    # Check if we should read from stdin (no source arguments provided and not in screenshot mode)
-    if not args.source and not args.screenshot and not sys.stdin.isatty():
-        logger.info("Reading data from stdin...")
-        
-        # Create a temporary file to store stdin data
+
+    # Stdin handling
+    if not args.source and not sys.stdin.isatty():
         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-            try:
-                # Read binary data from stdin
-                stdin_data = sys.stdin.buffer.read()
-                
-                if not stdin_data:
-                    logger.error("No data received from stdin.")
-                    sys.exit(1)
-                
-                # Write the data to the temporary file
-                temp_file.write(stdin_data)
-                temp_path = temp_file.name
-                
-                # Close the file to ensure all data is written
-                temp_file.close()
-                
-                # Determine the file type if not explicitly provided
-                mime_type = None
-                if args.stdin_format:
-                    # User specified the format
-                    format_map = {
-                        'pdf': 'application/pdf',
-                        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                        'doc': 'application/msword',
-                        'txt': 'text/plain',
-                        'html': 'text/html',
-                        'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                        'xls': 'application/vnd.ms-excel',
-                        'json': 'application/json',
-                        'xml': 'application/xml',
-                    }
-                    mime_type = format_map.get(args.stdin_format.lower())
-                
-                # If format wasn't specified or wasn't in our map, try to detect it
-                if not mime_type:
-                    import magic
-                    mime_type = magic.from_file(temp_path, mime=True)
-                    logger.info(f"Detected MIME type: {mime_type}")
-                
-                # Extract text based on the detected or specified format
-                if args.metadata:
-                    logger.info("Extracting metadata from stdin data...")
-                    metadata = extract_metadata(temp_path)
-                    output_result(metadata)
-                else:
-                    if args.chunked:
-                        logger.info("Extracting text from stdin data in chunks...")
-                        text = extract_text_chunked(temp_path)
-                    elif args.password:
-                        logger.info("Extracting text from password-protected stdin data...")
-                        text = extract_text_with_password(temp_path, args.password)
-                    else:
-                        logger.info("Extracting text from stdin data...")
-                        text = extract_text(temp_path)
-                    
-                    if not text:
-                        logger.error("No text extracted from stdin data.")
-                        sys.exit(1)
-                    
-                    result = process_extracted_text(text, args)
-                    output_result(result)
-                
-            except Exception as e:
-                logger.error(f"Error processing stdin data: {e}")
+            stdin_data = sys.stdin.buffer.read()
+            if not stdin_data:
+                logging.error("No data received from stdin.")
                 sys.exit(1)
-            finally:
-                # Clean up the temporary file
-                try:
-                    import os
-                    os.unlink(temp_path)
-                except Exception as e:
-                    logger.error(f"Failed to delete temp file: {e}")
-        
-        sys.exit(0)
-    
-    # Process sources (if provided)
-    sources = args.source
-    
-    # If no sources and stdin is a tty (terminal), show help
-    if not sources and sys.stdin.isatty() and not args.screenshot:
-        parser.print_help()
-        sys.exit(0)
-    
-    # Expand any directory sources
-    files = []
-    for source in sources:
-        if os.path.isdir(source):
-            # It's a directory, add all files in it
-            logger.info(f"Processing directory: {source}")
-            dir_files = [os.path.join(source, f) for f in os.listdir(source) 
-                        if os.path.isfile(os.path.join(source, f))]
-            files.extend(dir_files)
-        elif any(c in source for c in ["*", "?", "[", "]"]) and not os.path.exists(source):
-            # It's a wildcard pattern that wasn't expanded by the shell
-            logger.info(f"Processing pattern: {source}")
-            expanded = glob.glob(source, recursive=True)
-            if expanded:
-                files.extend(expanded)
+            temp_file.write(stdin_data)
+            temp_file_path = temp_file.name
+
+        mime_type = None
+        if args.stdin_format:
+            format_map = {
+                'pdf': 'application/pdf',
+                'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'txt': 'text/plain',
+                'html': 'text/html',
+                'json': 'application/json'
+            }
+            mime_type = format_map.get(args.stdin_format.lower())
+
+        try:
+            if args.metadata:
+                metadata = extract_metadata(temp_file_path)
+                output_result(metadata)
             else:
-                logger.warning(f"No files found matching pattern: {source}")
-        elif os.path.isfile(source):
-            # It's a regular file
-            files.append(source)
-        elif is_url(source):
-            # It's a URL - we'll handle it separately
-            if len(sources) == 1:
-                # Only process URL if it's the only source
-                if args.scrape:
-                    logger.info(f"Scraping website: {source} (max {args.max_pages} pages)")
-                    results = scrape_website(source, max_pages=args.max_pages)
-                    combined_text = "\n\n".join([f"=== {url} ===\n{text}" for url, text in results.items()])
-                    result = process_extracted_text(combined_text, args)
-                    output_result(result)
+                if args.chunked:
+                    text = extract_text_chunked(temp_file_path)
+                elif args.password:
+                    text = extract_text_with_password(temp_file_path, args.password)
                 else:
-                    logger.info(f"Extracting text from URL: {source}")
-                    text = text_from_url(source, render_js=not args.no_js)
-                    if not text:
-                        logger.error("No text extracted.")
-                        sys.exit(1)
-                    result = process_extracted_text(text, args)
-                    output_result(result)
-                return
-            else:
-                logger.warning(f"Skipping URL {source} when processing multiple sources")
+                    text = extract_text(temp_file_path)
+                if not text:
+                    logging.error("No text extracted.")
+                    sys.exit(1)
+                result = process_extracted_text(text, args)
+                output_result(result)
+        finally:
+            os.unlink(temp_file_path)
+        sys.exit(0)
+
+    # Expand sources
+    sources = args.source
+    files = []
+    urls = []
+
+    for src in sources:
+        if os.path.isdir(src):
+            files.extend([os.path.join(src, f) for f in os.listdir(src) if os.path.isfile(os.path.join(src, f))])
+        elif any(c in src for c in "*?[]") and not os.path.exists(src):
+            files.extend(glob.glob(src, recursive=True))
+        elif os.path.isfile(src):
+            files.append(src)
+        elif is_url(src):
+            urls.append(src)
         else:
-            logger.warning(f"Source not found: {source}")
-    
+            logging.warning(f"Invalid source skipped: {src}")
+
+    # URL handling (single only)
+    if urls:
+        if len(urls) > 1:
+            logging.warning("Only one URL can be processed at a time.")
+            sys.exit(1)
+        url = urls[0]
+
+        try:
+            if args.metadata:
+                result = extract_metadata(url)
+                output_result(result)
+                sys.exit(0)
+
+            if args.scrape:
+                results = scrape_website(url, max_pages=args.max_pages)
+                combined_text = "\n\n".join([f"=== {u} ===\n{text}" for u, text in results.items()])
+                result = process_extracted_text(combined_text, args)
+            else:
+                text = text_from_url(url, render_js=not args.no_js)
+                if not text:
+                    logging.error("No text extracted.")
+                    sys.exit(1)
+                result = process_extracted_text(text, args)
+
+            output_result(result)
+            sys.exit(0)
+
+        except Exception as e:
+            logging.error(f"Error processing URL {url}: {e}")
+            sys.exit(1)
+
     if not files:
-        logger.error("No valid files found to process.")
+        parser.print_help()
         sys.exit(1)
-    
-    logger.info(f"Processing {len(files)} files")
-    
-    # Process metadata if requested
+
+    # Metadata mode
     if args.metadata:
         results = {}
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            future_to_file = {executor.submit(extract_metadata, file_path): file_path for file_path in files}
-            for future in concurrent.futures.as_completed(future_to_file):
-                file_path = future_to_file[future]
+            futures = {executor.submit(extract_metadata, f): f for f in files}
+            for future in concurrent.futures.as_completed(futures):
+                f = futures[future]
                 try:
-                    results[os.path.basename(file_path)] = future.result()
-                except Exception as exc:
-                    results[os.path.basename(file_path)] = {"error": str(exc)}
+                    results[os.path.basename(f)] = future.result()
+                except Exception as e:
+                    results[os.path.basename(f)] = {"error": str(e)}
         output_result(results)
-        return
-    
-    # If only one file and not metadata, process it directly
+        sys.exit(0)
+
+    # Single file
     if len(files) == 1:
         file_path = files[0]
         try:
             if args.chunked:
-                logger.info(f"Extracting text from {file_path} in chunks")
                 text = extract_text_chunked(file_path)
             elif args.password:
-                logger.info(f"Extracting text from password-protected {file_path}")
                 text = extract_text_with_password(file_path, args.password)
             else:
-                logger.info(f"Extracting text from {file_path}")
                 text = extract_text(file_path)
-                
             if not text:
-                logger.error("No text extracted.")
+                logging.error("No text extracted.")
                 sys.exit(1)
-                
             result = process_extracted_text(text, args)
             output_result(result)
-            return
         except Exception as e:
-            logger.error(f"Error processing {file_path}: {e}")
+            logging.error(f"Error processing {file_path}: {e}")
             sys.exit(1)
-    
-    # Process multiple files
+        sys.exit(0)
+
+    # Multiple files
     results = batch_extract(files)
-    
-    # Process each extracted text according to arguments
-    processed_results = {}
-    for file_path, text in results.items():
-        if isinstance(text, str) and not text.startswith("ERROR:"):
-            processed_results[os.path.basename(file_path)] = process_extracted_text(text, args)
-        else:
-            processed_results[os.path.basename(file_path)] = text
-    
-    output_result(processed_results)
+    processed = {
+        os.path.basename(fp): process_extracted_text(text, args)
+        if isinstance(text, str) and not text.startswith("ERROR:")
+        else text
+        for fp, text in results.items()
+    }
+    output_result(processed)
+
 
 
 # Execute as script

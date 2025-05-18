@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# File: textanalysis.py
+# Author: Wadih Khairallah
+# Description: 
+# Created: 2025-05-17 19:34:41
 """
 Text Analysis Module
 
