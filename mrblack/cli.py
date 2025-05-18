@@ -5,7 +5,7 @@
 # Project: mrblack
 # Author: Based on work by Wadih Khairallah
 # Created: 2025-05-15
-# Modified: 2025-05-17 21:34:48
+# Modified: 2025-05-17 21:54:42
 #
 # Command line interface for mrblack toolkit
 
@@ -89,7 +89,7 @@ class GradientFigletBanner:
 
 class FancyHelpGroup(click.Group):
     def get_help(self, ctx):
-        GradientFigletBanner("Mr. Black", base_color="#00ffcc").render()
+        GradientFigletBanner("MrBlack", base_color="#00ffcc").render()
         return super().get_help(ctx)
 
 # Utility functions
