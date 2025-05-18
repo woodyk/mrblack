@@ -5,7 +5,7 @@
 # Project: mrblack
 # Author: Based on work by Wadih Khairallah
 # Created: 2025-05-15
-# Modified: 2025-05-17 19:28:15
+# Modified: 2025-05-17 20:36:42
 #
 # Command line interface for mrblack toolkit
 
@@ -33,6 +33,7 @@ from rich import box
 from rich.markdown import Markdown
 from rich.pretty import Pretty
 
+from mrblack.__version__ import __version__
 from mrblack.textextract import (
     extract_text, extract_text_chunked, text_from_url,
     text_from_screenshot, summarize_text, analyze_text,
@@ -254,7 +255,7 @@ def process_source(
 # Main CLI group
 @click.group(invoke_without_command=True)
 @click.pass_context
-@click.version_option(version="0.1.0")
+@click.version_option(version=__version__)
 def cli(ctx):
     """
     mrblack: Universal data extraction and analysis toolkit
