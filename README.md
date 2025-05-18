@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/woodyk/mrblack/refs/heads/main/assets/mrblack-header.png" alt="Mr. Black" style="width:100%; display:block; margin:0 auto;">
+<img src="https://raw.githubusercontent.com/woodyk/mrblack/refs/heads/main/assets/mrblack.png" alt="Mr. Black" style="width:100%; display:block; margin:0 auto;">
 
 # Mr. Black
 
