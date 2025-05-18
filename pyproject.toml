@@ -54,6 +54,7 @@ dependencies = [
   "textblob",
   "networkx",
   "scikit-learn",
+  "pyfiglet",
 ]
 
 [project.urls]

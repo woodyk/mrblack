@@ -5,7 +5,7 @@
 # Project: mrblack
 # Author: Based on work by Wadih Khairallah
 # Created: 2025-05-15
-# Modified: 2025-05-17 20:36:42
+# Modified: 2025-05-17 21:34:48
 #
 # Command line interface for mrblack toolkit
 
@@ -20,7 +20,9 @@ import getpass
 import socket
 import pytz
 import math
+import pyfiglet
 
+from pyfiglet import Figlet
 from datetime import datetime
 from uuid import uuid4
 from pathlib import Path
@@ -29,7 +31,9 @@ from typing import Optional, Dict, List, Any, Tuple, Union, Callable
 from rich.console import Console, Group
 from rich.panel import Panel
 from rich.table import Table
+from rich.text import Text
 from rich import box
+from rich.style import Style
 from rich.markdown import Markdown
 from rich.pretty import Pretty
 
@@ -54,6 +58,39 @@ console = Console()
 # Constants
 DEFAULT_MAX_PAGES = 5
 TIMESTAMP = datetime.now(pytz.UTC).isoformat()
+
+class GradientFigletBanner:
+    def __init__(self, text: str, base_color: str = "#00ffcc", font: str = "ansi_shadow"):
+        self.text = text
+        self.base_color = base_color.lstrip("#")
+        self.font = font
+        self.console = Console()
+        self.figlet = Figlet(font=self.font)
+
+    def _hex_to_rgb(self, hex_color: str) -> tuple[int, int, int]:
+        return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
+    def _adjust_brightness(self, rgb: tuple[int, int, int], factor: float) -> str:
+        r = int(max(0, min(255, rgb[0] * factor)))
+        g = int(max(0, min(255, rgb[1] * factor)))
+        b = int(max(0, min(255, rgb[2] * factor)))
+        return f"#{r:02x}{g:02x}{b:02x}"
+
+    def render(self):
+        lines = self.figlet.renderText(self.text).splitlines()
+        base_rgb = self._hex_to_rgb(self.base_color)
+        total_lines = len(lines)
+
+        for i, line in enumerate(lines):
+            brightness = 0.5 + 0.5 * (i / max(1, total_lines - 1))  # from 50% to 100%
+            color = self._adjust_brightness(base_rgb, brightness)
+            styled_line = Text(line, style=Style(color=color))
+            self.console.print(styled_line)
+
+class FancyHelpGroup(click.Group):
+    def get_help(self, ctx):
+        GradientFigletBanner("Mr. Black", base_color="#00ffcc").render()
+        return super().get_help(ctx)
 
 # Utility functions
 def handle_output(
@@ -253,7 +290,7 @@ def process_source(
 
 
 # Main CLI group
-@click.group(invoke_without_command=True)
+@click.group(invoke_without_command=True, cls=FancyHelpGroup)
 @click.pass_context
 @click.version_option(version=__version__)
 def cli(ctx):

@@ -34,3 +34,5 @@ click
 textblob
 networkx
 scikit-learn
+
+pyfiglet
