@@ -4,7 +4,7 @@
 # File: textextract.py
 # Author: Wadih Khairallah
 # Created: 2024-12-01 12:12:08
-# Modified: 2025-05-17 20:00:08
+# Modified: 2025-05-31 13:47:14
 # Enhanced with additional features
 
 import os
@@ -19,6 +19,7 @@ import subprocess
 import hashlib
 import string
 import tempfile
+import traceback
 import random
 import unicodedata
 import concurrent.futures
@@ -77,31 +78,37 @@ from textblob import TextBlob
 try:
     nltk.data.find('tokenizers/punkt')
 except LookupError:
+    traceback.print_exc()
     nltk.download('punkt', quiet=True)
     
 try:
     nltk.data.find('corpora/stopwords')
 except LookupError:
+    traceback.print_exc()
     nltk.download('stopwords', quiet=True)
     
 try:
     nltk.data.find('taggers/averaged_perceptron_tagger')
 except LookupError:
+    traceback.print_exc()
     nltk.download('averaged_perceptron_tagger', quiet=True)
     
 try:
     nltk.data.find('corpora/wordnet')
 except LookupError:
+    traceback.print_exc()
     nltk.download('wordnet', quiet=True)
     
 try:
     nltk.data.find('chunkers/maxent_ne_chunker')
 except LookupError:
+    traceback.print_exc()
     nltk.download('maxent_ne_chunker', quiet=True)
     
 try:
     nltk.data.find('corpora/words')
 except LookupError:
+    traceback.print_exc()
     nltk.download('words', quiet=True)
 
 # Logging with Rich
@@ -148,7 +155,6 @@ def generate_http_headers(url):
     return headers
 
 
-
 def clean_path(
     path: str
 ) -> Optional[str]:
@@ -187,10 +193,10 @@ def normalize_text(
     if not text:
         return ""
     text = unicodedata.normalize("NFKC", text)
-    text = re.sub(r' +', ' ', text)
+    #text = re.sub(r' +', ' ', text)
     text = re.sub(r'\n+', '\n', text)
     text = re.sub(r'(?m)(^ \n)+', '\n', text)
-    text = re.sub(r'\t+', '\t', text)
+    #text = re.sub(r'\t+', '\t', text)
     text = re.sub(r'\r+', '\n', text)
     text = re.sub(r"^ ", "", text, flags=re.MULTILINE)
     return text 
@@ -237,10 +243,12 @@ def text_from_screenshot() -> str:
         content = text_from_image(tmp_path)
         return normalize_text(content)
     finally:
+        traceback.print_exc()
         if os.path.exists(tmp_path):
             try:
                 os.remove(tmp_path)
             except Exception as e:
+                traceback.print_exc()
                 logger.error(f"Failed to delete temp screenshot: {e}")
 
 
@@ -266,6 +274,7 @@ def extract_exif(
         if result.returncode == 0:
             exif_data = json.loads(result.stdout.decode())[0]
     except Exception as e:
+        traceback.print_exc()
         logger.error(f"Exiftool failed: {e}")
     return exif_data
 
@@ -373,11 +382,13 @@ def text_from_url(
         head = requests.head(url, headers=headers, timeout=5, allow_redirects=True)
         content_type = head.headers.get("Content-Type", "").lower()
     except Exception as e:
+        traceback.print_exc()
         logger.warning(f"HEAD request failed: {e}")
         try:
             resp = requests.get(url, headers=headers, timeout=5, stream=True)
             content_type = resp.headers.get("Content-Type", "").lower()
         except Exception as e:
+            traceback.print_exc()
             logger.warning(f"GET fallback for Content-Type check failed: {e}")
 
     # If clearly not HTML, treat as a file and extract locally
@@ -391,6 +402,7 @@ def text_from_url(
                     tmp_path = tmp_file.name
             return extract_text(tmp_path)
         except Exception as e:
+            traceback.print_exc()
             logger.error(f"Failed to download and extract file from URL: {url} - {e}")
             return None
 
@@ -403,14 +415,18 @@ def text_from_url(
                 try:
                     r.html.render(timeout=5, sleep=1, keep_page=True)
                 except Exception as e:
+                    traceback.print_exc()
                     logger.warning(f"JS rendering failed, falling back to static HTML: {e}")
                 html = r.html.html
                 return text_from_html(html)
             except Exception as e:
+                traceback.print_exc()
                 logger.error(f"[Error with HTMLSession] {url} - {e}")
             finally:
+                traceback.print_exc()
                 session.close()
         except Exception as e:
+            traceback.print_exc()
             logger.error(f"[Error creating HTMLSession] {e}")
 
     # Fallback: static HTML without rendering
@@ -420,6 +436,7 @@ def text_from_url(
         html = response.text
         return text_from_html(html)
     except Exception as e:
+        traceback.print_exc()
         logger.error(f"[Error with requests] {url} - {e}")
         return None
 
@@ -469,8 +486,10 @@ def scrape_website(url: str, max_pages: int = 1, stay_on_domain: bool = True) ->
                         continue
                     to_visit.append(link)
         except Exception as e:
+            traceback.print_exc()
             logger.error(f"Error scraping {current_url}: {e}")
         finally:
+            traceback.print_exc()
             session.close()
     
     return results
@@ -558,6 +577,7 @@ def extract_text(
             content = text_from_any(path)
             return content
     except Exception as e:
+        traceback.print_exc()
         logger.error(f"Error reading {path}: {e}")
         return None
 
@@ -604,6 +624,7 @@ def text_from_pdf_protected(pdf_path: str, password: str) -> Optional[str]:
         doc.close()
         return normalize_text(text)
     except Exception as e:
+        traceback.print_exc()
         logger.error(f"Error in PDF with password: {str(e)}")
         return None
 
@@ -667,16 +688,21 @@ def text_from_audio(
         return recognizer.recognize_google(audio)
 
     except sr.UnknownValueError:
+        traceback.print_exc()
         logger.error("Could not understand audio.")
     except sr.RequestError as e:
+        traceback.print_exc()
         logger.error(f"Speech recognition error: {e}")
     except Exception as e:
+        traceback.print_exc()
         logger.error(f"Failed to process audio: {e}")
     finally:
+        traceback.print_exc()
         if cleanup_needed and temp_wav_path and os.path.exists(temp_wav_path):
             try:
                 os.remove(temp_wav_path)
             except Exception as e:
+                traceback.print_exc()
                 logger.error(f"Failed to delete temp WAV file {temp_wav_path}: {e}")
 
     return None
@@ -710,6 +736,7 @@ def downloadImage(
                         f.write(chunk)
                 return clean_path(save_path)
         except Exception as e:
+            traceback.print_exc()
             logger.error(f"Failed to download image from {url}: {e}")
     logger.error(f"Unable to pull image from {url}")
     return None
@@ -736,6 +763,7 @@ def is_image(
             mime = magic.from_file(file_path_or_url, mime=True)
             return mime.startswith("image/")
     except Exception:
+        traceback.print_exc()
         return False
 
 
@@ -794,19 +822,23 @@ def text_from_pdf(
                     else:
                         plain_text += str(table) + "\n"
         except Exception as e:
+        traceback.print_exc()
             logger.warning(f"Could not extract tables from PDF: {e}")
         """
 
         return normalize_text(plain_text)
     except Exception as e:
+        traceback.print_exc()
         logger.error(f"Error processing PDF: {e}")
         return None
     finally:
+        traceback.print_exc()
         for path in temp_image_paths:
             if os.path.exists(path):
                 try:
                     os.remove(path)
                 except Exception as e:
+                    traceback.print_exc()
                     logger.error(f"Failed to delete temp image {path}: {e}")
         if 'doc' in locals():
             doc.close()
@@ -840,9 +872,11 @@ def extract_tables_from_pdf(pdf_path: str) -> List[Dict[str, Any]]:
         
         return tables
     except ImportError:
+        traceback.print_exc()
         logger.warning("tabula-py not installed, skipping table extraction")
         return []
     except Exception as e:
+        traceback.print_exc()
         logger.error(f"Error extracting tables from PDF: {e}")
         return []
 
@@ -883,6 +917,7 @@ def extract_pdf_chunked(pdf_path: str, chunk_size: int = 10) -> Optional[str]:
         doc.close()
         return normalize_text("".join(text_chunks))
     except Exception as e:
+        traceback.print_exc()
         logger.error(f"Error processing PDF in chunks: {e}")
         return None
 
@@ -987,14 +1022,17 @@ def text_from_docx(
         return normalize_text(plain_text)
 
     except Exception as e:
+        traceback.print_exc()
         logger.error(f"Error processing DOCX: {e}")
         return None
     finally:
+        traceback.print_exc()
         for path in temp_image_paths:
             if os.path.exists(path):
                 try:
                     os.remove(path)
                 except Exception as e:
+                    traceback.print_exc()
                     logger.error(f"Failed to delete temp DOCX image {path}: {e}")
 
 
@@ -1026,6 +1064,7 @@ def text_from_excel(
             result += "\n"
         return result
     except Exception as e:
+        traceback.print_exc()
         logger.error(f"Failed Excel -> CSV: {e}")
         return ""
 
@@ -1063,6 +1102,7 @@ def text_from_image(
             txt = pytesseract.image_to_string(img, config=custom_config).strip()
             return normalize_text(txt) or ""
     except Exception as e:
+        traceback.print_exc()
         logger.error(f"Failed image OCR: {e}")
         return None
 
@@ -1115,9 +1155,11 @@ def extract_strings(file_path, min_length=4):
         
         return result
     except FileNotFoundError:
+        traceback.print_exc()
         print(f"Error: File '{file_path}' not found.", file=sys.stderr)
         return None
     except Exception as e:
+        traceback.print_exc()
         print(f"Error: {e}", file=sys.stderr)
         return None
 
@@ -1178,6 +1220,7 @@ def text_from_any(
 
         return info 
     except Exception as e:
+        traceback.print_exc()
         logger.error(f"Error on other file: {e}")
         return None
 
@@ -1854,6 +1897,7 @@ def extract_url_metadata(
         ]
 
     except Exception as e:
+        traceback.print_exc()
         metadata["error"] = str(e)
 
     return metadata
@@ -1914,6 +1958,7 @@ def extract_url_metadata(url: str, timeout: int = 10) -> dict:
         metadata["html_meta"]["twitter:description"] = get_meta("twitter:description")
 
     except Exception as e:
+        traceback.print_exc()
         metadata["error"] = str(e)
 
     return metadata
@@ -1961,6 +2006,7 @@ def extract_file_metadata(
                     for attr in xattrs:
                         metadata["xattrs"][attr] = os.getxattr(path, attr)
             except (OSError, AttributeError):
+                traceback.print_exc()
                 pass
         
         # Get EXIF data if available and relevant
@@ -1972,10 +2018,12 @@ def extract_file_metadata(
         try:
             metadata["owner"] = pwd.getpwuid(stats.st_uid).pw_name
         except KeyError:
+            traceback.print_exc()
             metadata["owner"] = str(stats.st_uid)
         metadata["permissions"] = oct(stats.st_mode)[-3:]
                 
     except Exception as e:
+        traceback.print_exc()
         metadata["error"] = str(e)
         
     return metadata
@@ -2014,6 +2062,7 @@ def detect_language(text: str) -> str:
         lang = langdetect.detect(text)
         return language_names[lang]
     except:
+        traceback.print_exc()
         logger.warning("Language detection failed or langdetect not installed")
         return "unknown"
 
@@ -2030,6 +2079,7 @@ def list_available_languages() -> Dict[str, str]:
         languages = GoogleTranslator().get_supported_languages(as_dict=True)
         return languages
     except Exception as e:
+        traceback.print_exc()
         logger.error(f"Error getting language list: {e}")
         # Return a small subset as fallback
         return {
@@ -2091,6 +2141,7 @@ def translate_text(text: str, target_lang: str = "en") -> Optional[str]:
             
         return ' '.join(translated_chunks)
     except Exception as e:
+        traceback.print_exc()
         logger.error(f"Translation error: {e}")
         return None
 
@@ -2147,6 +2198,7 @@ def summarize_text(text: str, sentences: int = 5) -> str:
         
         return ' '.join(summary_sentences)
     except Exception as e:
+        traceback.print_exc()
         logger.error(f"Summarization error: {e}")
         return text
 
@@ -2209,6 +2261,7 @@ def analyze_text(
         try:
             stop_words = set(stopwords.words('english'))
         except:
+            traceback.print_exc()
             nltk.download('stopwords')
             stop_words = set(stopwords.words('english'))
         
@@ -2272,6 +2325,7 @@ def analyze_text(
             entity_counts = {entity_type: len(entities) for entity_type, entities in named_entities.items()}
             
         except Exception as ne_error:
+            traceback.print_exc()
             logger.warning(f"NER error: {ne_error}")
             named_entities = {}
             entity_counts = {}
@@ -2407,6 +2461,7 @@ def analyze_text(
                         tfidf_scores = sorted(tfidf_scores, key=lambda x: x[1], reverse=True)
                         tfidf_top_terms.append([(feature_names[i], score) for i, score in tfidf_scores[:5]])
             except Exception as tfidf_error:
+                traceback.print_exc()
                 logger.warning(f"TF-IDF error: {tfidf_error}")
                 tfidf_top_terms = []
         else:
@@ -2532,6 +2587,7 @@ def analyze_text(
                     advanced_results["cluster_terms"] = {"note": "Insufficient data for clustering"}
                 
             except Exception as topic_error:
+                traceback.print_exc()
                 logger.warning(f"Topic modeling error: {topic_error}")
                 advanced_results["topics"] = ["Error in topic modeling"]
                 advanced_results["svd_topics"] = ["Error in topic modeling"]
@@ -2584,6 +2640,7 @@ def analyze_text(
                 else:
                     advanced_results["network_analysis"] = {"note": "Insufficient data for network analysis"}
             except Exception as network_error:
+                traceback.print_exc()
                 logger.warning(f"Network analysis error: {network_error}")
                 advanced_results["network_analysis"] = {"error": str(network_error)}
                 
@@ -2633,6 +2690,7 @@ def analyze_text(
                 
                 advanced_results["syntactic_complexity"] = syntactic_complexity
             except Exception as syntax_error:
+                traceback.print_exc()
                 logger.warning(f"Syntactic analysis error: {syntax_error}")
                 advanced_results["syntactic_complexity"] = {"error": str(syntax_error)}
                 
@@ -2988,6 +3046,7 @@ def analyze_text(
 
                 advanced_results["similarity_analysis"] = similarity_analysis
             except Exception as sim_error:
+                traceback.print_exc()
                 logger.warning(f"Similarity analysis error: {sim_error}")
                 advanced_results["similarity_analysis"] = {"error": str(sim_error)}
 
@@ -3024,6 +3083,7 @@ def analyze_text(
 
             analysis_results["emotion_analysis"] = emotion_analysis
         except Exception as emo_error:
+            traceback.print_exc()
             logger.warning(f"Emotion analysis error: {emo_error}")
             analysis_results["emotion_analysis"] = {"error": str(emo_error)}
 
@@ -3041,6 +3101,7 @@ def analyze_text(
         return analysis_results
 
     except Exception as e:
+        traceback.print_exc()
         logger.error(f"Text analysis error: {e}")
         import traceback
         return {
@@ -3088,9 +3149,11 @@ def text_from_epub(epub_path: str) -> Optional[str]:
         
         return normalize_text("\n".join(content))
     except ImportError:
+        traceback.print_exc()
         logger.error("ebooklib and/or html2text not installed")
         return "ebooklib and/or html2text packages are required for EPUB processing"
     except Exception as e:
+        traceback.print_exc()
         logger.error(f"Error processing EPUB: {e}")
         return None
 
@@ -3131,9 +3194,11 @@ def text_from_pptx(pptx_path: str) -> Optional[str]:
         
         return normalize_text("\n\n".join(text))
     except ImportError:
+        traceback.print_exc()
         logger.error("python-pptx not installed")
         return "python-pptx package is required for PowerPoint processing"
     except Exception as e:
+        traceback.print_exc()
         logger.error(f"Error processing PowerPoint: {e}")
         return None
 
@@ -3174,9 +3239,11 @@ def text_from_odt(odt_path: str) -> Optional[str]:
         
         return normalize_text(final_text)
     except ImportError:
+        traceback.print_exc()
         logger.error("odfpy not installed")
         return "odfpy package is required for ODT processing"
     except Exception as e:
+        traceback.print_exc()
         logger.error(f"Error processing ODT: {e}")
         return None
 
@@ -3230,6 +3297,7 @@ def extract_text_file_chunked(file_path: str, chunk_size: int = 1024*1024) -> st
         
         return normalize_text("".join(result))
     except Exception as e:
+        traceback.print_exc()
         logger.error(f"Error processing text file in chunks: {e}")
         return ""
 
@@ -3253,6 +3321,7 @@ def batch_extract(file_paths: List[str], max_workers: Optional[int] = None) -> D
             try:
                 results[file_path] = future.result() or f"No text extracted from {file_path}"
             except Exception as exc:
+                traceback.print_exc()
                 results[file_path] = f"ERROR: {exc}"
     return results
 
@@ -3342,6 +3411,7 @@ def main() -> None:
                 json.dumps(obj)
                 return True
             except (TypeError, OverflowError):
+                traceback.print_exc()
                 return False
                 
         def make_serializable(obj):
@@ -3428,6 +3498,7 @@ def main() -> None:
                 result = process_extracted_text(text, args)
                 output_result(result)
         finally:
+            traceback.print_exc()
             os.unlink(temp_file_path)
         sys.exit(0)
 
@@ -3476,6 +3547,7 @@ def main() -> None:
             sys.exit(0)
 
         except Exception as e:
+            traceback.print_exc()
             logging.error(f"Error processing URL {url}: {e}")
             sys.exit(1)
 
@@ -3493,6 +3565,7 @@ def main() -> None:
                 try:
                     results[os.path.basename(f)] = future.result()
                 except Exception as e:
+                    traceback.print_exc()
                     results[os.path.basename(f)] = {"error": str(e)}
         output_result(results)
         sys.exit(0)
@@ -3513,6 +3586,7 @@ def main() -> None:
             result = process_extracted_text(text, args)
             output_result(result)
         except Exception as e:
+            traceback.print_exc()
             logging.error(f"Error processing {file_path}: {e}")
             sys.exit(1)
         sys.exit(0)

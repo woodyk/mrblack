@@ -5,7 +5,7 @@
 # Project: mrblack
 # Author: Based on work by Wadih Khairallah
 # Created: 2025-05-15
-# Modified: 2025-05-29 11:35:54
+# Modified: 2025-05-31 13:46:43
 #
 # Command line interface for mrblack toolkit
 
@@ -21,6 +21,7 @@ import socket
 import pytz
 import math
 import pyfiglet
+import traceback
 
 from pyfiglet import Figlet
 from datetime import datetime
@@ -220,11 +221,13 @@ def handle_stdin_data(
             
         return temp_path, format_type
     except Exception as e:
+        traceback.print_exc()
         #console.print(f"[red]Error processing stdin data:[/] {e}")
         if os.path.exists(temp_path):
             try:
                 os.unlink(temp_path)
             except:
+                traceback.print_exc()
                 pass
         return None
 
@@ -895,6 +898,7 @@ def main():
     try:
         cli()
     except Exception as e:
+        traceback.print_exc()
         console.print(f"[bold red]Error:[/] {str(e)}")
         if '--debug' in sys.argv:
             import traceback
