@@ -5,7 +5,7 @@
 # Author: Wadih Khairallah
 # Description: 
 # Created: 2024-12-02 22:52:20
-# Modified: 2025-04-28 11:24:00
+# Modified: 2025-05-27 18:11:11
 
 # CREDIT CARD NUMBERS
 CREDIT_CARD_PATTERNS = [

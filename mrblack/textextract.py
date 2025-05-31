@@ -1183,7 +1183,26 @@ def text_from_any(
 
 
 def text_from_object(obj):
-    return json.dumps(obj, indent=4, ensure_ascii=False)
+    """
+    Convert any Python object to a JSON string.
+    Handles non-serializable objects by converting them to strings.
+    
+    Args:
+        obj: Any Python object
+        
+    Returns:
+        str: JSON string representation
+    """
+    # Define a custom JSON encoder that handles non-serializable objects
+    class CustomJSONEncoder(json.JSONEncoder):
+        def default(self, o):
+            # Try to convert to dictionary if object has __dict__
+            if hasattr(o, "__dict__"):
+                return o.__dict__
+            # Convert other non-serializable objects to string
+            return str(o)
+    
+    return json.dumps(obj, indent=4, ensure_ascii=False, cls=CustomJSONEncoder)
 
 def tree_from_object(obj, indent=0, path=None):
     """
@@ -3317,6 +3336,34 @@ def main() -> None:
         logging.getLogger().setLevel(logging.DEBUG)
 
     def output_result(result):
+        # Handle non-serializable objects
+        def is_serializable(obj):
+            try:
+                json.dumps(obj)
+                return True
+            except (TypeError, OverflowError):
+                return False
+                
+        def make_serializable(obj):
+            if isinstance(obj, (dict, list, tuple, set)):
+                if isinstance(obj, dict):
+                    return {k: make_serializable(v) for k, v in obj.items()}
+                elif isinstance(obj, (list, tuple)):
+                    return [make_serializable(item) for item in obj]
+                elif isinstance(obj, set):
+                    return [make_serializable(item) for item in obj]
+            elif hasattr(obj, "__dict__"):
+                # Convert custom objects to their dictionary representation
+                return make_serializable(obj.__dict__)
+            elif not is_serializable(obj):
+                # For other non-serializable objects, convert to string
+                return str(obj)
+            return obj
+            
+        # Make result serializable if it's a dictionary
+        if isinstance(result, dict):
+            result = make_serializable(result)
+                
         if args.output:
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(result, f, indent=2, ensure_ascii=False) if isinstance(result, dict) else f.write(str(result))

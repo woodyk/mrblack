@@ -5,7 +5,7 @@
 # Project: mrblack
 # Author: Based on work by Wadih Khairallah
 # Created: 2025-05-15
-# Modified: 2025-05-17 21:54:42
+# Modified: 2025-05-29 11:35:54
 #
 # Command line interface for mrblack toolkit
 
@@ -101,6 +101,38 @@ def handle_output(
     raw_output: bool = False
 ):
     """Handle output in either JSON, raw text, or rich formatted mode"""
+    # Convert rich objects to serializable formats before JSON serialization
+    if json_output or (save_path and not isinstance(data, str)):
+        if isinstance(data, Group):
+            # Convert rich Group object to dictionary with metadata
+            # Assuming the Group contains rich objects like Panel that contain text or data
+            # Extract the actual content from the Group's components
+            original_data = data
+            data = {"components": []}
+            
+            # Try to extract content from each component
+            for component in original_data.renderables:
+                if hasattr(component, "renderable") and hasattr(component, "title"):
+                    # Likely a Panel object
+                    data["components"].append({
+                        "title": str(component.title) if component.title else "",
+                        "content": str(component.renderable) if component.renderable else ""
+                    })
+                else:
+                    # Unknown component, convert to string
+                    data["components"].append(str(component))
+                    
+        elif hasattr(data, "__rich__") or hasattr(data, "__rich_console__"):
+            # Handle other rich objects by converting to string
+            # Create a string buffer and console for rendering
+            from io import StringIO
+            from rich.console import Console as RichConsole
+            
+            string_io = StringIO()
+            tmp_console = RichConsole(file=string_io, width=100, highlight=False, markup=False)
+            tmp_console.print(data)
+            data = string_io.getvalue()
+    
     if json_output:
         if isinstance(data, str):
             data = {
@@ -638,31 +670,35 @@ def scrape(
         console.print("[yellow]No pages were successfully scraped.[/yellow]")
         return
     
-    if not json and not raw:
-        render = []
-        # Display summary of scraped pages
-        table = Table(title=f"Scraped {len(results)} Pages", box=box.ROUNDED, expand=True)
-        table.add_column("URL", style="cyan", justify="right")
-        table.add_column("Content Length", style="green", justify="left")
+    # For JSON output, keep the original data structure
+    if json or raw:
+        handle_output(results, url, output, json, raw)
+        return
         
-        for page_url, content in results.items():
-            table.add_row(page_url, str(len(content)))
-        
-        render.append(table)
-        
-        # Show preview of first page
-        first_url = next(iter(results))
-        for u in results:
-            render.append(Panel(
-                results[u], 
-                title=f"{u}",
-                border_style="green",
-                expand=True
-            ))
+    # For rich display, create a Group of formatted components
+    render = []
+    # Display summary of scraped pages
+    table = Table(title=f"Scraped {len(results)} Pages", box=box.ROUNDED, expand=True)
+    table.add_column("URL", style="cyan", justify="right")
+    table.add_column("Content Length", style="green", justify="left")
+    
+    for page_url, content in results.items():
+        table.add_row(page_url, str(len(content)))
+    
+    render.append(table)
+    
+    # Show preview of first page
+    first_url = next(iter(results))
+    for u in results:
+        render.append(Panel(
+            results[u], 
+            title=f"{u}",
+            border_style="green",
+            expand=True
+        ))
 
-        results = Group(*render)
-
-    handle_output(results, url, output, json, raw)
+    formatted_results = Group(*render)
+    handle_output(formatted_results, url, output, json, raw)
 
 
 # Screenshot command
