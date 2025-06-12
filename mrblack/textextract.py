@@ -4,7 +4,7 @@
 # File: textextract.py
 # Author: Wadih Khairallah
 # Created: 2024-12-01 12:12:08
-# Modified: 2025-05-31 13:47:14
+# Modified: 2025-06-12 15:58:22
 # Enhanced with additional features
 
 import os
@@ -66,7 +66,7 @@ from PIL import Image
 # NLP and Text Analytics
 from collections import Counter
 import nltk
-from nltk.corpus import stopwords, wordnet
+from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer, PorterStemmer
 from nltk.util import ngrams
 from nltk.probability import FreqDist
@@ -92,12 +92,6 @@ try:
 except LookupError:
     traceback.print_exc()
     nltk.download('averaged_perceptron_tagger', quiet=True)
-    
-try:
-    nltk.data.find('corpora/wordnet')
-except LookupError:
-    traceback.print_exc()
-    nltk.download('wordnet', quiet=True)
     
 try:
     nltk.data.find('chunkers/maxent_ne_chunker')
