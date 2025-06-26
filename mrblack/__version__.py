@@ -5,6 +5,6 @@
 # Author: Wadih Khairallah
 # Description: 
 # Created: 2025-05-17 20:35:57
-# Modified: 2025-06-12 16:07:22
+# Modified: 2025-06-22 17:44:02
 
-__version__ = "0.2.7"
+__version__ = "0.2.9"

@@ -5,7 +5,7 @@
 # Author: Wadih Khairallah
 # Description: 
 # Created: 2025-05-17 20:55:02
-# Modified: 2025-05-31 13:35:22
+# Modified: 2025-06-22 17:44:22
 
 import os
 import sys
@@ -29,7 +29,7 @@ CONFIG = {
     "author_email": "woodyk@gmail.com",
     "project_url": "https://github.com/woodyk/mrblack",
     "description": "Data extraction and analysis toolkit.",
-    "python_requires": ">=3.8",
+    "python_requires": "3.12",
     "license_text": "MIT",
     "keywords": ["text", "extraction", "pii", "analysis"],
     "classifiers": [

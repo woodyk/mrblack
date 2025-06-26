@@ -36,3 +36,4 @@ networkx
 scikit-learn
 
 pyfiglet
+openpyxl

@@ -5,10 +5,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mrblack"
-version = "0.2.7"
+version = "0.2.9"
 description = "Data extraction and analysis toolkit."
 readme = { file = "README.md", content-type = "text/markdown" }
-requires-python = ">=3.8"
+requires-python = "3.12"
 license = { text = "MIT" }
 authors = [
   { name = "Wadih Khairallah", email = "woodyk@gmail.com" }
@@ -55,6 +55,7 @@ dependencies = [
   "networkx",
   "scikit-learn",
   "pyfiglet",
+  "openpyxl",
 ]
 
 [project.urls]
